@@ -8,14 +8,14 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root {
-  --bg:#1a1d2e;--surface:#21253a;--surface2:#272b42;--surface3:#2d3150;
-  --border:#323660;--border2:#3a3e68;
-  --accent:#5b8cff;--accent2:#7ca4ff;--accent-dim:rgba(91,140,255,0.1);--accent-glow:rgba(91,140,255,0.25);
+  --bg:#1e2130;--surface:#252838;--surface2:#2c3045;--surface3:#333652;
+  --border:#353850;--border2:#3e425e;
+  --accent:#4a7fc1;--accent2:#6a9fd4;--accent-dim:rgba(74,127,193,0.12);--accent-glow:rgba(74,127,193,0.2);
   --gold:#f5c842;--gold-dim:rgba(245,200,66,0.12);
-  --success:#3ecf8e;--success-dim:rgba(62,207,142,0.1);
-  --danger:#ff6b6b;--danger-dim:rgba(255,107,107,0.1);
-  --warn:#fbbf24;--warn-dim:rgba(251,191,36,0.1);
-  --text:#dde3f8;--text-sub:#7b83b0;--text-muted:#444c72;
+  --success:#38b87e;--success-dim:rgba(56,184,126,0.1);
+  --danger:#d95f5f;--danger-dim:rgba(217,95,95,0.1);
+  --warn:#e09050;--warn-dim:rgba(224,144,80,0.12);
+  --text:#dadde8;--text-sub:#8a90b0;--text-muted:#555a78;
   --radius:12px;--font:'Inter','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -50,10 +50,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 }
 .main-tab::before{
   content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,var(--accent),#4060e0);
+  background:linear-gradient(135deg,var(--accent),#3a65a8);
   opacity:0;transition:opacity 0.2s;
 }
-.main-tab.active{border-color:var(--accent);color:#fff;box-shadow:0 4px 20px rgba(91,140,255,0.3);}
+.main-tab.active{border-color:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(74,127,193,0.25);}
 .main-tab.active::before{opacity:1;}
 .main-tab:hover:not(.active){border-color:var(--border2);color:var(--text-sub);background:var(--surface2);}
 .main-tab .tab-icon{font-size:34px;position:relative;z-index:1;flex-shrink:0;}
@@ -73,7 +73,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .sub-tab.active{
   border-color:var(--accent);
   color:#fff;
-  background:linear-gradient(135deg,var(--accent),#4060e0);
+  background:linear-gradient(135deg,var(--accent),#3a65a8);
   box-shadow:0 3px 12px rgba(91,140,255,0.3);
 }
 .sub-tab:hover:not(.active){color:var(--text-sub);}
@@ -144,7 +144,7 @@ tbody tr:hover td{background:rgba(91,140,255,0.06);}
 .action-bar{margin-top:18px;display:flex;align-items:center;gap:10px;justify-content:flex-end;}
 .btn{padding:10px 22px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;
   border:none;transition:all 0.18s;font-family:var(--font);letter-spacing:0.01em;}
-.btn-primary{background:linear-gradient(135deg,var(--accent),#4060e0);color:#fff;
+.btn-primary{background:linear-gradient(135deg,var(--accent),#3a65a8);color:#fff;
   box-shadow:0 2px 12px rgba(91,140,255,0.3);}
 .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(91,140,255,0.4);}
 .btn-primary:disabled{opacity:0.35;cursor:not-allowed;}
@@ -254,6 +254,15 @@ select.filter-input{cursor:pointer;}
   .manual-grid{display:none;}
   .manual-actions{display:none;}
   .mf-group{display:none;}
+
+  /* ── 일괄업로드 바 ── */
+  .bulk-upload-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    background:rgba(91,140,255,0.08);border:1px solid rgba(91,140,255,0.25);
+    border-radius:10px;padding:12px 18px;margin-bottom:14px;
+  }
+  .bulk-info{font-size:13px;color:var(--text-sub);}
+  .bulk-info strong{color:var(--accent2);}
 </style>
 </head>
 <body>
@@ -382,6 +391,10 @@ select.filter-input{cursor:pointer;}
         <button class="filter-reset" onclick="resetLowFilter()">초기화</button>
       </div>
       <div class="stats-row" id="low-stats"></div>
+      <div class="bulk-upload-bar" id="low-bulk-bar" style="display:none;">
+        <span class="bulk-info" id="low-bulk-info"></span>
+        <button class="btn btn-primary" onclick="bulkUpload('low')" id="low-bulk-btn">📤 미업로드 일괄 업로드</button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
@@ -491,6 +504,10 @@ select.filter-input{cursor:pointer;}
         <button class="filter-reset" onclick="resetRetFilter()">초기화</button>
       </div>
       <div class="stats-row" id="ret-stats"></div>
+      <div class="bulk-upload-bar" id="ret-bulk-bar" style="display:none;">
+        <span class="bulk-info" id="ret-bulk-info"></span>
+        <button class="btn btn-primary" onclick="bulkUpload('ret')" id="ret-bulk-btn">📤 미업로드 일괄 업로드</button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
@@ -642,16 +659,30 @@ function parseLowPdf(text){
       const nums=[...line.matchAll(/\b(\d[\d,]{2,})\b/g)].map(m=>parseInt(m[1].replace(/,/g,'')));
       const pctM=line.match(/([\d.]+)\s*%/);
       const brand=line.match(/\b([a-zA-Z]{4,})\b/g)?.find(w=>!w.match(/^(Dabr|Tram|GSK)/i))||'';
-      current={카달로그번호:codeM[1],품명_parts:[],브랜드:brand,입고가:nums[0]||0,출고가:nums[1]||0,마진율:pctM?parseFloat(pctM[1]):null};
+      current={카달로그번호:codeM[1],품명_parts:[],브랜드:brand,
+        입고가:nums.length>=1?nums[0]:null,
+        출고가:nums.length>=2?nums[1]:null,
+        마진율:pctM?parseFloat(pctM[1]):null,
+        _pendingNums:nums.length<2  // 숫자가 부족하면 다음 줄에서 보완
+      };
       const nameM=line.match(/\b[A-Z][a-z]+\w*[\s\(\)\-,\.0-9mg]+/);
       if(nameM) current.품명_parts.push(nameM[0].trim());
     } else if(current){
       const t=line.trim();
+      // 숫자 보완 (입고가/출고가/마진율이 다음 줄에 있는 경우)
+      if(current._pendingNums){
+        const nums2=[...line.matchAll(/\b(\d[\d,]{2,})\b/g)].map(m=>parseInt(m[1].replace(/,/g,'')));
+        const pctM2=line.match(/([\d.]+)\s*%/);
+        if(nums2.length>=2){ current.입고가=nums2[0]; current.출고가=nums2[1]; current._pendingNums=false; }
+        else if(nums2.length===1 && current.입고가===null){ current.입고가=nums2[0]; }
+        else if(nums2.length===1 && current.입고가!==null){ current.출고가=nums2[0]; current._pendingNums=false; }
+        if(pctM2 && !current.마진율){ current.마진율=parseFloat(pctM2[1]); }
+      }
       if(t&&/[A-Za-z]/.test(t)&&!t.match(/^(Dreamcell|APR-)/)) current.품명_parts.push(t);
     }
   }
   if(current) products.push(fin(current));
-  function fin(p){p.품명=p.품명_parts.join(' ').replace(/\s+/g,' ').replace(/\s*g\b/g,'g').trim();delete p.품명_parts;return p;}
+  function fin(p){p.품명=p.품명_parts.join(' ').replace(/\s+/g,' ').replace(/\s*g\b/g,'g').trim();delete p.품명_parts;delete p._pendingNums;return p;}
   return{docNo,drafter,shipDate,customer,sayuRaw,products};
 }
 
@@ -792,10 +823,23 @@ function renderLowStats(data){
   const total=data.length;
   const avgMargin=total?( data.reduce((s,r)=>s+(r.margin_rate||0),0)/total ).toFixed(1):0;
   const totalOut=data.reduce((s,r)=>s+(r.sale_price||0),0);
+  const notUploaded=data.filter(r=>!r.is_uploaded);
   document.getElementById('low-stats').innerHTML=`
     <div class="stat-card"><div class="sv blue">${total}</div><div class="sk">전체 건수</div></div>
     <div class="stat-card"><div class="sv red">${avgMargin}%</div><div class="sk">평균 마진율</div></div>
-    <div class="stat-card"><div class="sv gold">${fmt(totalOut)}</div><div class="sk">총 출고금액</div></div>`;
+    <div class="stat-card"><div class="sv gold">${fmt(totalOut)}</div><div class="sk">총 출고금액</div></div>
+    <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}">${notUploaded.length}</div><div class="sk">미업로드</div></div>`;
+  // 미업로드 바 표시
+  const bar = document.getElementById('low-bulk-bar');
+  const info = document.getElementById('low-bulk-info');
+  if(notUploaded.length > 0){
+    bar.style.display = 'flex';
+    info.innerHTML = `미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
+    bar._ids = notUploaded.map(r=>r.id);
+    bar._data = notUploaded;
+  } else {
+    bar.style.display = 'none';
+  }
 }
 
 function resetLowFilter(){
@@ -967,10 +1011,22 @@ function renderRetStats(data){
   const total=data.length;
   const totalQty=data.reduce((s,r)=>s+(r.qty||0),0);
   const totalAmt=data.reduce((s,r)=>s+(r.total||0),0);
+  const notUploaded=data.filter(r=>!r.is_uploaded);
   document.getElementById('ret-stats').innerHTML=`
     <div class="stat-card"><div class="sv blue">${total}</div><div class="sk">전체 건수</div></div>
     <div class="stat-card"><div class="sv green">${fmt(totalQty)}</div><div class="sk">총 반품 수량</div></div>
-    <div class="stat-card"><div class="sv gold">${fmt(totalAmt)}</div><div class="sk">총 반품 금액</div></div>`;
+    <div class="stat-card"><div class="sv gold">${fmt(totalAmt)}</div><div class="sk">총 반품 금액</div></div>
+    <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}">${notUploaded.length}</div><div class="sk">미업로드</div></div>`;
+  const bar = document.getElementById('ret-bulk-bar');
+  const info = document.getElementById('ret-bulk-info');
+  if(notUploaded.length > 0){
+    bar.style.display = 'flex';
+    info.innerHTML = `미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
+    bar._ids = notUploaded.map(r=>r.id);
+    bar._data = notUploaded;
+  } else {
+    bar.style.display = 'none';
+  }
 }
 
 function resetRetFilter(){
@@ -1287,10 +1343,9 @@ async function uploadHistoryRow(tab, id) {
   }
 }
 
-// 히스토리 행 수정 (인라인)
+// 히스토리 행 수정 (인라인) - 더블클릭
 function editHistoryRow(tab, id, btn) {
   const tr = btn.closest('tr');
-  const cells = [...tr.querySelectorAll('td')];
   const isLow = tab === 'low';
 
   // 이미 편집 중이면 저장
@@ -1303,17 +1358,24 @@ function editHistoryRow(tab, id, btn) {
   btn.textContent = '💾';
   btn.title = '저장';
 
-  // 편집 가능한 셀 인덱스 (업로드/액션 컬럼 제외)
+  // 각 td에서 현재 텍스트값 읽어서 input으로 교체
+  const tds = [...tr.querySelectorAll('td')];
   const editableCols = isLow
-    ? [0,1,2,3,4,5,6,7,8,9]   // 출고일~사유
-    : [0,1,2,3,4,5,6,7,9,10]; // 반품일~합계 (처리내용 제외)
+    ? {0:'date',1:'text',2:'text',3:'text',4:'text',5:'text',6:'number',7:'number',8:'number',9:'text'}
+    : {0:'date',1:'text',2:'text',3:'text',4:'number',5:'text',6:'text',7:'text',9:'number',10:'number'};
 
-  editableCols.forEach(i => {
-    const td = cells[i];
+  Object.entries(editableCols).forEach(([i, type]) => {
+    const td = tds[parseInt(i)];
     if(!td) return;
-    const val = td.textContent.trim();
-    const type = (i===0) ? 'date' : (i>=6&&i<=10) ? 'number' : 'text';
-    td.innerHTML = `<input style="width:100%;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px;" type="${type}" value="${val.replace(/%$/,'')}">`;
+    // 기존 텍스트 추출 (버튼/스팬 제외)
+    let val = '';
+    const span = td.querySelector('span');
+    const inp = td.querySelector('input');
+    if(inp) { val = inp.value; }
+    else if(span) { val = span.textContent.trim(); }
+    else { val = td.textContent.trim(); }
+    val = val.replace(/%$/, '').replace(/,/g,'').trim();
+    td.innerHTML = `<input style="width:100%;min-width:60px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px;" type="${type}" value="${val}">`;
   });
 }
 
@@ -1382,6 +1444,83 @@ async function deleteHistoryRow(tab, id, btn) {
     if(isLow) loadLowHistory(); else loadRetHistory();
   } else {
     alert('❌ 삭제 실패');
+  }
+}
+
+
+// ══════════════════════════════════════════
+//  월별 일괄 업로드
+// ══════════════════════════════════════════
+async function bulkUpload(tab) {
+  const isLow = tab === 'low';
+  const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
+  const bar   = document.getElementById(tab+'-bulk-bar');
+  const btn   = document.getElementById(tab+'-bulk-btn');
+  const info  = document.getElementById(tab+'-bulk-info');
+
+  const rows = bar._data;
+  if(!rows || !rows.length){ alert('업로드할 데이터가 없습니다.'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>업로드 중...';
+
+  // 이슈모니터에 insert할 payload (is_uploaded, id, created_at 제외)
+  const payload = rows.map(r => {
+    const obj = {...r};
+    delete obj.id;
+    delete obj.created_at;
+    delete obj.is_uploaded;
+    return obj;
+  });
+
+  try {
+    const uploadResp = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/${tbl}`, 'POST', payload);
+
+    if(uploadResp.ok || uploadResp.status === 201 || uploadResp.status === 409) {
+      // is_uploaded = true 일괄 업데이트
+      const ids = bar._ids;
+      await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=in.(${ids.join(',')})`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': UPLOADER_KEY,
+          'Authorization': `Bearer ${UPLOADER_KEY}`
+        },
+        body: JSON.stringify({is_uploaded: true})
+      });
+
+      setStatus(`📤 ${rows.length}건 이슈모니터 업로드 완료!`, '', 'success');
+      info.innerHTML = `✅ <strong>${rows.length}건</strong> 업로드 완료!`;
+      info.style.color = 'var(--success)';
+      btn.style.display = 'none';
+
+      // 히스토리 새로고침
+      setTimeout(() => {
+        if(isLow) loadLowHistory(); else loadRetHistory();
+      }, 1000);
+    } else {
+      const e = await uploadResp.json().catch(() => ({}));
+      // 중복 포함된 경우 - 새로운 것만 업로드됐을 수 있음
+      if(e.code === '23505') {
+        // 일단 is_uploaded 모두 true로
+        const ids = bar._ids;
+        await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=in.(${ids.join(',')})`, {
+          method: 'PATCH',
+          headers: {'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
+          body: JSON.stringify({is_uploaded:true})
+        });
+        info.innerHTML = '⚠️ 일부 중복 포함 — 신규건 업로드됨';
+        if(isLow) loadLowHistory(); else loadRetHistory();
+      } else {
+        throw new Error(e.message || `HTTP ${uploadResp.status}`);
+      }
+    }
+  } catch(e) {
+    info.innerHTML = '❌ 오류: ' + e.message;
+    info.style.color = 'var(--danger)';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📤 미업로드 일괄 업로드';
   }
 }
 
