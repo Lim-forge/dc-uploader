@@ -119,9 +119,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 
 /* ── 테이블 ── */
 .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);
-  background:#141728;box-shadow:0 4px 24px rgba(0,0,0,0.2);}
+  background:#171c30;box-shadow:0 4px 16px rgba(0,0,0,0.15);}
 table{width:100%;border-collapse:collapse;font-size:12.5px;}
-thead tr{background:#1c2040;border-bottom:1px solid rgba(255,255,255,0.08);}
+thead tr{background:#1e2444;border-bottom:1px solid rgba(255,255,255,0.1);}
 th{padding:10px 13px;color:var(--text-sub);font-weight:700;font-size:11px;
   text-transform:uppercase;letter-spacing:0.08em;text-align:left;white-space:nowrap;}
 td{padding:9px 13px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text);vertical-align:middle;}
@@ -236,14 +236,16 @@ select.filter-input{cursor:pointer;}
   .manual-cell{
     padding:0 !important;
     background:transparent;
+    border-right:1px solid rgba(255,255,255,0.08) !important;
   }
+  .manual-cell:last-child{border-right:none !important;}
   .manual-cell-inner{
     padding:8px 13px;
     min-height:36px;
     display:flex;align-items:center;
   }
   .manual-cell:focus-within{
-    background:rgba(91,140,255,0.08) !important;
+    background:rgba(91,140,255,0.1) !important;
     outline:2px solid var(--accent);
     outline-offset:-2px;
   }
@@ -559,7 +561,7 @@ function initYears(selId) {
   if(sel.options.length > 1) return;
   const cur = new Date().getFullYear();
   sel.innerHTML = '<option value="">전체</option>';
-  for(let y=cur; y>=cur-3; y--) sel.innerHTML += `<option>${y}</option>`;
+  for(let y=cur; y>=cur-3; y--) sel.innerHTML += `<option ${y===cur?'selected':''}>${y}</option>`;
 }
 
 // ── PDF 텍스트 추출 ───────────────────────────────────
@@ -977,19 +979,27 @@ function buildQueryString(prefix){
   const code =document.getElementById(`${prefix}-h-code`)?.value.trim();
   const name =document.getElementById(`${prefix}-h-name`)?.value.trim();
   const params=[];
-  if(year&&!from&&!to){
-    const yNum=parseInt(year);
-    if(month){
-      // 연도+월 → 해당 월 범위만
+  if(!from&&!to){
+    const curYear = new Date().getFullYear();
+    const yNum = year ? parseInt(year) : null;
+    if(yNum && month){
+      // 연도+월
       const m=parseInt(month);
       const lastDay=new Date(yNum,m,0).getDate();
       params.push(`${dateCol}=gte.${yNum}-${String(m).padStart(2,'0')}-01`);
       params.push(`${dateCol}=lte.${yNum}-${String(m).padStart(2,'0')}-${lastDay}`);
-    } else {
-      // 연도만 → 해당 연도 전체
+    } else if(yNum && !month){
+      // 연도만
       params.push(`${dateCol}=gte.${yNum}-01-01`);
       params.push(`${dateCol}=lte.${yNum}-12-31`);
+    } else if(!yNum && month){
+      // 월만 → 현재 연도 기준
+      const m=parseInt(month);
+      const lastDay=new Date(curYear,m,0).getDate();
+      params.push(`${dateCol}=gte.${curYear}-${String(m).padStart(2,'0')}-01`);
+      params.push(`${dateCol}=lte.${curYear}-${String(m).padStart(2,'0')}-${lastDay}`);
     }
+    // 연도+월 둘 다 없으면 필터 없음 (전체)
   }
   if(from) params.push(`${dateCol}=gte.${from}`);
   if(to)   params.push(`${dateCol}=lte.${to}`);
