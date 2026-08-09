@@ -1059,7 +1059,21 @@ async function parseRetPdf(text, file){
     try {
       const ab2 = await file.arrayBuffer();
       const pdf2 = await pdfjsLib.getDocument({data:ab2}).promise;
+      // 1단계: 품명 헤더 y좌표 찾기
+      let nameHeaderY = -1;
+      const pg1 = await pdf2.getPage(1);
+      const ct1 = await pg1.getTextContent();
+      const vp1 = pg1.getViewport({scale:1});
+      ct1.items.forEach(it => {
+        const s = it.str.trim();
+        const x = Math.round(it.transform[4]);
+        const y = Math.round(vp1.height - it.transform[5]);
+        if(s === '품명' && x >= 200 && x <= 280) nameHeaderY = y;
+      });
+      // 2단계: 품명 헤더 y±60 범위 + x:275~389 텍스트만 수집
       const nameItems = [];
+      const yFrom = nameHeaderY > 0 ? nameHeaderY - 60 : 0;
+      const yTo   = nameHeaderY > 0 ? nameHeaderY + 60 : 9999;
       for(let pi=1; pi<=pdf2.numPages; pi++) {
         const pg = await pdf2.getPage(pi);
         const ct = await pg.getTextContent();
@@ -1069,7 +1083,7 @@ async function parseRetPdf(text, file){
           const x = Math.round(it.transform[4]);
           const y = Math.round(h2 - it.transform[5]);
           const s = it.str.trim();
-          if(s && x>=275 && x<=389 && !s.includes('품명') && !s.includes('원수주단가')) {
+          if(s && x>=275 && x<=389 && y>=yFrom && y<=yTo && !s.includes('품명') && !s.includes('원수주단가')) {
             nameItems.push({y, x, str:s});
           }
         });
