@@ -981,10 +981,10 @@ function parseRetPdf(text){
   const qtyM     =text.match(/수량\s+(\d+)/);
   const priceM   =text.match(/수정단가\s+(\d[\d,]*)/);
   const buyerM   =text.match(/매입처\s+(\S+)/);
-  const sayuM2   =text.match(/사유\n([\s\S]+?)(?=\n입고일|\n결재|\n※|\f)/);
+  const sayuM2   =text.match(/사유\s+([^\n]+(?:\n(?!\s*입고일|\s*결재|\s*※)[^\n]*)*)/);
   // 품명 (여러 줄)
   const nameM2=text.match(/품명\s+([\s\S]+?)(?=원수주단가)/);
-  const 품명=nameM2?nameM2[1].replace(/\s+/g,' ').trim():'';
+  const 품명=nameM2?nameM2[1].replace(/\s+/g,' ').replace(/\s*\)\s*/g,')').trim():'';
   const docNo   =docNoM?docNoM[1]:null;
   const drafter =drafterM?drafterM[1].replace(/(대리|과장|차장|부장|사원|이사|팀장|주임)$/,'').trim():null;
   const 반품일  =parseDate(returnDM?returnDM[1]:null);
