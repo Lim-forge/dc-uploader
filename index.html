@@ -1059,35 +1059,44 @@ async function parseRetPdf(text, file){
     try {
       const ab2 = await file.arrayBuffer();
       const pdf2 = await pdfjsLib.getDocument({data:ab2}).promise;
-      // 1단계: 품명 헤더 y좌표 찾기
-      let nameHeaderY = -1;
+      // 1단계: 1페이지 전체 아이템 수집
       const pg1 = await pdf2.getPage(1);
       const ct1 = await pg1.getTextContent();
       const vp1 = pg1.getViewport({scale:1});
+      const allPg1 = [];
       ct1.items.forEach(it => {
-        const s = it.str.trim();
         const x = Math.round(it.transform[4]);
         const y = Math.round(vp1.height - it.transform[5]);
-        if(s === '품명' && x >= 200 && x <= 280) nameHeaderY = y;
+        const s = it.str.trim();
+        if(s) allPg1.push({x, y, str:s});
       });
-      // 2단계: 품명 헤더 y±60 범위 + x:275~389 텍스트만 수집
-      const nameItems = [];
-      const yFrom = nameHeaderY > 0 ? nameHeaderY - 60 : 0;
-      const yTo   = nameHeaderY > 0 ? nameHeaderY + 60 : 9999;
-      for(let pi=1; pi<=pdf2.numPages; pi++) {
-        const pg = await pdf2.getPage(pi);
-        const ct = await pg.getTextContent();
-        const vp = pg.getViewport({scale:1});
-        const h2 = vp.height;
-        ct.items.forEach(it => {
-          const x = Math.round(it.transform[4]);
-          const y = Math.round(h2 - it.transform[5]);
-          const s = it.str.trim();
-          if(s && x>=275 && x<=389 && y>=yFrom && y<=yTo && !s.includes('품명') && !s.includes('원수주단가')) {
-            nameItems.push({y, x, str:s});
+
+      // 2단계: 품명 헤더 y좌표 찾기
+      let nameHeaderY = -1;
+      allPg1.forEach(it => {
+        if(it.str === '품명' && it.x >= 200 && it.x <= 280) nameHeaderY = it.y;
+      });
+
+      // 3단계: 품명 헤더 다음 행 레이블(수정단가/입고일/사유 등 x<200) y좌표 찾기 → 끝점
+      let nameEndY = 9999;
+      if(nameHeaderY > 0) {
+        allPg1.forEach(it => {
+          if(it.x < 150 && it.y > nameHeaderY && it.y < nameEndY &&
+             (it.str.includes('수정단가') || it.str.includes('입고일') || it.str.includes('사유') || it.str.includes('매입처'))) {
+            nameEndY = it.y;
           }
         });
       }
+
+      // 4단계: 품명 컬럼(x:275~389) + y범위(nameHeaderY-15 ~ nameEndY-5)만 수집
+      const nameItems = [];
+      const yFrom = nameHeaderY > 0 ? nameHeaderY - 15 : 0;
+      const yTo   = nameEndY - 5;
+      allPg1.forEach(it => {
+        if(it.x>=275 && it.x<=389 && it.y>=yFrom && it.y<=yTo && !it.str.includes('품명') && !it.str.includes('원수주단가')) {
+          nameItems.push(it);
+        }
+      });
       nameItems.sort((a,b)=>a.y-b.y||a.x-b.x);
       품명 = nameItems.map(i=>i.str).join(' ').replace(/\s*\)\s*/g,')').replace(/\s+/g,' ').trim();
     } catch(e) {
