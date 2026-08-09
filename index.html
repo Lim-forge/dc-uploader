@@ -40,9 +40,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   border:1.5px solid var(--gold);box-shadow:0 0 0 2px rgba(245,200,66,0.15),0 0 10px rgba(245,200,66,0.2);flex-shrink:0;}
 /* ── 메인 탭 (10%미만 / 반품) ── */
 .wrap{width:100%;padding:20px 40px 80px;}
-.main-tabs{display:flex;gap:12px;margin-bottom:24px;}
+.main-tabs{display:flex;gap:12px;margin-bottom:24px;justify-content:center;}
 .main-tab{
-  flex:1;padding:14px 20px;border:1px solid var(--border2);border-radius:14px;
+  flex:0 0 calc(25% - 6px);padding:14px 20px;border:1px solid var(--border2);border-radius:14px;
   font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);
   color:var(--text-muted);background:var(--surface);transition:all 0.2s;
   display:flex;flex-direction:row;align-items:center;gap:14px;
@@ -56,9 +56,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .main-tab.active{border-color:var(--accent);color:#fff;box-shadow:0 4px 20px rgba(91,140,255,0.3);}
 .main-tab.active::before{opacity:1;}
 .main-tab:hover:not(.active){border-color:var(--border2);color:var(--text-sub);background:var(--surface2);}
-.main-tab .tab-icon{font-size:30px;position:relative;z-index:1;flex-shrink:0;}
+.main-tab .tab-icon{font-size:34px;position:relative;z-index:1;flex-shrink:0;}
 .main-tab .tab-info{display:flex;flex-direction:column;gap:4px;position:relative;z-index:1;}
-.main-tab .tab-label{font-size:13px;font-weight:700;line-height:1;}
+.main-tab .tab-label{font-size:15px;font-weight:800;line-height:1;}
 .main-tab .tab-badge{
   font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;
   background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);width:fit-content;
@@ -129,10 +129,10 @@ tr:last-child td{border-bottom:none;}
 tbody tr{transition:background 0.1s;}
 tbody tr:hover td{background:var(--surface2);}
 .td-date{color:var(--accent2);font-weight:700;white-space:nowrap;font-size:12px;}
-.td-cat{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:var(--text-sub);}
-.td-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12px;}
+.td-cat{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:var(--text);}
+.td-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12px;color:var(--text);}
 .td-margin{font-weight:800;color:var(--danger);text-align:right;font-size:12px;}
-.td-sub{font-size:11.5px;color:var(--text-sub);}
+.td-sub{font-size:11.5px;color:var(--text);}
 .sayu-cell{min-width:150px;max-width:200px;}
 .sayu-input{width:100%;background:transparent;border:1px solid transparent;border-radius:6px;
   padding:4px 7px;color:var(--text-sub);font-size:12px;font-family:var(--font);
@@ -953,13 +953,15 @@ function buildQueryString(prefix){
   const params=[];
   if(year&&!from&&!to){
     const yNum=parseInt(year);
-    params.push(`${dateCol}=gte.${yNum}-01-01`);
     if(month){
+      // 연도+월 → 해당 월 범위만
       const m=parseInt(month);
       const lastDay=new Date(yNum,m,0).getDate();
       params.push(`${dateCol}=gte.${yNum}-${String(m).padStart(2,'0')}-01`);
       params.push(`${dateCol}=lte.${yNum}-${String(m).padStart(2,'0')}-${lastDay}`);
     } else {
+      // 연도만 → 해당 연도 전체
+      params.push(`${dateCol}=gte.${yNum}-01-01`);
       params.push(`${dateCol}=lte.${yNum}-12-31`);
     }
   }
