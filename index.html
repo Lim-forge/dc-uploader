@@ -920,8 +920,8 @@ async function loadLowHistory(){
       <td>${esc(r.reason||'-')}</td>
       <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
       <td>${r.is_uploaded
-        ? '<span style="color:#3ecf8e;font-size:11px;font-weight:700;">✅ 완료</span>'
-        : `<button onclick="uploadHistoryRow('low','${r.id}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--accent-dim);color:var(--accent);cursor:pointer;white-space:nowrap;">📤 업로드</button>`}
+        ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);">✅ 완료</span>'
+        : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);">⬜ 미업로드</span>'}
       </td>
       <td style="white-space:nowrap;">
         <button onclick="editHistoryRow('low','${r.id}',this)" title="수정" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">✏️</button>
@@ -982,7 +982,7 @@ function parseRetPdf(text){
   const qtyM     =text.match(/수량\s+(\d+)/);
   const priceM   =text.match(/수정단가\s+(\d[\d,]*)/);
   const buyerM   =text.match(/매입처\s+(\S+)/);
-  const sayuM2   =text.match(/사유\s+([^\n]+)/);
+  const sayuM2   =text.match(/사유\s+([\s\S]+?)(?=\n입고일|\n결재\s*의견|\n※|\f)/);
   // 품명 (여러 줄)
   const nameM2=text.match(/품명\s+([\s\S]+?)(?=원수주단가)/);
   const 품명=nameM2?nameM2[1].replace(/\s+/g,' ').trim():'';
@@ -992,7 +992,7 @@ function parseRetPdf(text){
   const 수량    =qtyM?parseInt(qtyM[1]):0;
   const 단가    =priceM?parseInt(priceM[1].replace(/,/g,'')):0;
   const 합계    =수량*단가;  // kept for local calc
-  const sayuRaw =sayuM2?sayuM2[1].trim():'';
+  const sayuRaw =sayuM2?sayuM2[1].replace(/\s+/g,' ').trim():'';
   return{doc_no:docNo,rep:drafter,return_date:parseDate(returnDM?returnDM[1]:null),customer_name:customerM?customerM[1]:'',
     code:codeM2?codeM2[1]:'',item_name:품명,qty:수량,supplier:buyerM?buyerM[1]:'',
     reason:sayuRaw,process:'반품',unit_price:단가,total:합계};
@@ -1116,8 +1116,8 @@ async function loadRetHistory(){
       <td class="td-num" style="font-weight:700;color:var(--accent2)">${fmt(r.total)}</td>
       <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
       <td>${r.is_uploaded
-        ? '<span style="color:#3ecf8e;font-size:11px;font-weight:700;">✅ 완료</span>'
-        : `<button onclick="uploadHistoryRow('ret','${r.id}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--accent-dim);color:var(--accent);cursor:pointer;white-space:nowrap;">📤 업로드</button>`}
+        ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);">✅ 완료</span>'
+        : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);">⬜ 미업로드</span>'}
       </td>
       <td style="white-space:nowrap;">
         <button onclick="editHistoryRow('ret','${r.id}',this)" title="수정" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">✏️</button>
