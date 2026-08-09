@@ -711,6 +711,29 @@ async function extractPdfText(file) {
   return full;
 }
 
+// x좌표 기반 특정 컬럼 텍스트 추출 (반품 품명용)
+async function extractColText(file, xMin, xMax, yStart, yEnd) {
+  const ab=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+  const items=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    const vp=page.getViewport({scale:1});
+    const h=vp.height;
+    content.items.forEach(item=>{
+      const x=item.transform[4];
+      const y=h-item.transform[5]; // PDF y는 아래서 위 방향이라 반전
+      if(x>=xMin&&x<=xMax&&y>=yStart&&y<=yEnd&&item.str.trim()){
+        items.push({y,x,str:item.str.trim()});
+      }
+    });
+  }
+  // y좌표 오름차순, x좌표 오름차순 정렬
+  items.sort((a,b)=>a.y-b.y||a.x-b.x);
+  return items.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
+}
+
 // ── 공통 유틸 ─────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return n!=null?Number(n).toLocaleString('ko-KR'):'-';}
@@ -738,7 +761,7 @@ function shortenSayu(raw){
   return raw.replace(/\s+/g,' ').trim();
 }
 
-function parseLowPdf(text){
+async function parseLowPdf(text, file){
   const docNoM  =text.match(/문서번호\s+(APR-\S+)/);
   const drafterM=text.match(/기안자\s+(\S+)/);
   const shipM   =text.match(/출고일\s+([\d\-]+)/);
@@ -794,6 +817,51 @@ function parseLowPdf(text){
   }
   if(current) products.push(fin(current));
   function fin(p){p.품명=p.품명_parts.join(' ').replace(/\s+/g,' ').replace(/\s*g\b/g,'g').trim();delete p.품명_parts;delete p._pendingNums;return p;}
+
+  // x좌표 기반으로 품명 재추출 (줄 수 무관, 카달로그별로 y범위 구분)
+  if(file && products.length > 0) {
+    try {
+      const ab2 = await file.arrayBuffer();
+      const pdf2 = await pdfjsLib.getDocument({data:ab2}).promise;
+      // 모든 페이지에서 x:136~218 범위 텍스트 + 카달로그번호(x:53~135) 수집
+      const allItems = [];
+      for(let pi=1; pi<=pdf2.numPages; pi++){
+        const pg = await pdf2.getPage(pi);
+        const ct = await pg.getTextContent();
+        const vp = pg.getViewport({scale:1});
+        const h2 = vp.height;
+        ct.items.forEach(it => {
+          const x = Math.round(it.transform[4]);
+          const y = Math.round(h2 - it.transform[5]);
+          const s = it.str.trim();
+          if(s) allItems.push({x, y, str:s});
+        });
+      }
+      // 카달로그번호 y좌표 찾기
+      const codeYMap = {};
+      allItems.forEach(it => {
+        if(it.x >= 53 && it.x <= 135 && /^S[\w\-]+/.test(it.str)) {
+          codeYMap[it.str] = it.y;
+        }
+      });
+      // 각 제품별 품명 셀(x:136~218) 텍스트 수집
+      const codeList = Object.keys(codeYMap);
+      codeList.forEach((code, idx) => {
+        const yFrom = codeYMap[code] - 5;
+        const yTo   = idx < codeList.length-1 ? codeYMap[codeList[idx+1]] - 5 : yFrom + 60;
+        const nameItems = allItems
+          .filter(it => it.x >= 136 && it.x <= 218 && it.y >= yFrom && it.y <= yTo && !it.str.match(/^(제품명|품명)$/))
+          .sort((a,b) => a.y-b.y || a.x-b.x);
+        if(nameItems.length > 0) {
+          const prod = products.find(p => p.카달로그번호 === code);
+          if(prod) prod.item_name = nameItems.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
+        }
+      });
+    } catch(e) { /* fallback: 기존 품명 유지 */ }
+  }
+  // item_name 없으면 품명으로 채우기
+  products.forEach(p => { if(!p.item_name) p.item_name = p.품명; });
+
   return{docNo,drafter,shipDate,customer,sayuRaw,products};
 }
 
@@ -815,7 +883,7 @@ async function processLowFile(id){
   const item=lowQueue.find(q=>q.id===id); if(!item) return;
   try{
     const text=await extractPdfText(item.file);
-    const parsed=parseLowPdf(text);
+    const parsed=await parseLowPdf(text, item.file);
     if(!parsed.docNo||!parsed.shipDate||!parsed.products.length) throw new Error('파싱 실패 — 양식 확인');
     item.status='done';
     item.result={...parsed,sayu:shortenSayu(parsed.sayuRaw)};
@@ -829,7 +897,7 @@ function rebuildLow(){
     const r=item.result;
     r.products.forEach((p,pi)=>{
       lowRows.push({_id:`${item.id}-${pi}`,ship_date:parseDate(r.shipDate),customer_name:r.customer,rep:r.drafter,
-        catalog_no:p.카달로그번호,item_name:p.품명,brand:p.브랜드,cost_price:p.입고가,sale_price:p.출고가,
+        catalog_no:p.카달로그번호,item_name:p.item_name||p.품명,brand:p.브랜드,cost_price:p.입고가,sale_price:p.출고가,
         margin_rate:p.마진율,reason:r.sayu,doc_no:r.docNo});
     });
   });
@@ -970,7 +1038,7 @@ function resetLowFilter(){
 // ══════════════════════════════════════════════════════
 //  반품처리건
 // ══════════════════════════════════════════════════════
-function parseRetPdf(text){
+async function parseRetPdf(text, file){
   const docNoM  =text.match(/문서번호\s+(APR-\S+)/);
   const drafterM=text.match(/기안자\s+(\S+)/);
   const changeM =text.match(/변경사유\s+(\S+)/);
@@ -983,8 +1051,39 @@ function parseRetPdf(text){
   const buyerM   =text.match(/매입처\s+(\S+)/);
   const sayuM2   =text.match(/\s사유\s+([^\n]+)/);
   // 품명 (여러 줄)
-  const nameM2=text.match(/품명\s+([\s\S]+?)(?=원수주단가)/);
-  const 품명=nameM2?nameM2[1].replace(/\s+/g,' ').replace(/\s*\)\s*/g,')').trim():'';
+  // 품명: 바로 앞줄 텍스트 + 품명 키워드 다음 텍스트 합치기
+  // 품명: 앞줄(VoneTex AMG Nitir) + 같은줄(le Glove XS(100pcs) + 다음줄 ) 합치기
+  // 품명: x좌표 기반으로 품명 셀(x:260~389) 텍스트 수집 (줄 수 무관)
+  let 품명 = '';
+  if(file) {
+    try {
+      const ab2 = await file.arrayBuffer();
+      const pdf2 = await pdfjsLib.getDocument({data:ab2}).promise;
+      const nameItems = [];
+      for(let pi=1; pi<=pdf2.numPages; pi++) {
+        const pg = await pdf2.getPage(pi);
+        const ct = await pg.getTextContent();
+        const vp = pg.getViewport({scale:1});
+        const h2 = vp.height;
+        ct.items.forEach(it => {
+          const x = Math.round(it.transform[4]);
+          const y = Math.round(h2 - it.transform[5]);
+          const s = it.str.trim();
+          if(s && x>=260 && x<=389 && !s.includes('품명')) {
+            nameItems.push({y, x, str:s});
+          }
+        });
+      }
+      nameItems.sort((a,b)=>a.y-b.y||a.x-b.x);
+      품명 = nameItems.map(i=>i.str).join(' ').replace(/\s*\)\s*/g,')').replace(/\s+/g,' ').trim();
+    } catch(e) {
+      const nm = text.match(/품명\s+([\s\S]+?)(?=\s*원수주단가)/);
+      품명 = nm ? nm[1].replace(/\s+/g,' ').trim() : '';
+    }
+  } else {
+    const nm = text.match(/품명\s+([\s\S]+?)(?=\s*원수주단가)/);
+    품명 = nm ? nm[1].replace(/\s+/g,' ').trim() : '';
+  }
   const docNo   =docNoM?docNoM[1]:null;
   const drafter =drafterM?drafterM[1].replace(/(대리|과장|차장|부장|사원|이사|팀장|주임)$/,'').trim():null;
   const 반품일  =parseDate(returnDM?returnDM[1]:null);
@@ -1014,7 +1113,7 @@ async function processRetFile(id){
   const item=retQueue.find(q=>q.id===id); if(!item) return;
   try{
     const text=await extractPdfText(item.file);
-    const parsed=parseRetPdf(text);
+    const parsed=await parseRetPdf(text, item.file);
     item.status='done'; item.result=parsed;
     updateQueueStatus(id,'done','완료');
   }catch(e){item.status='error';item.errorMsg=e.message;updateQueueStatus(id,'error',e.message.slice(0,35));}
