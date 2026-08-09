@@ -752,7 +752,7 @@ function parseLowPdf(text){
   const drafterM=text.match(/기안자\s+(\S+)/);
   const shipM   =text.match(/출고일\s+([\d\-]+)/);
   const custM   =text.match(/거래처명\s+(\S+)/);
-  const sayuM   =text.match(/사유\s+([\s\S]+?)(?=\n1\s*[.．]\s*거래처|\n결재\s*의견|\f)/);
+  const sayuM   =text.match(/사유\s+([\s\S]+?)(?=\n1\s*[.．]\s*거래처|\n결재\s*의견|\n제품코드|\n기안|\n문서번호|\n출고일|\f)/);
   const docNo   =docNoM?docNoM[1]:null;
   const drafter =drafterM?drafterM[1].replace(/(대리|과장|차장|부장|사원|이사|팀장|주임)$/,'').trim():null;
   const shipDate=shipM?shipM[1]:null;
