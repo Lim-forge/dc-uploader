@@ -119,15 +119,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 
 /* ── 테이블 ── */
 .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);
-  background:var(--surface);box-shadow:0 4px 24px rgba(0,0,0,0.3);}
+  background:#141728;box-shadow:0 4px 24px rgba(0,0,0,0.2);}
 table{width:100%;border-collapse:collapse;font-size:12.5px;}
-thead tr{background:linear-gradient(180deg,var(--surface3),var(--surface2));border-bottom:1px solid var(--border2);}
+thead tr{background:#1c2040;border-bottom:1px solid rgba(255,255,255,0.08);}
 th{padding:10px 13px;color:var(--text-sub);font-weight:700;font-size:11px;
   text-transform:uppercase;letter-spacing:0.08em;text-align:left;white-space:nowrap;}
-td{padding:9px 13px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+td{padding:9px 13px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 tbody tr{transition:background 0.1s;}
-tbody tr:hover td{background:var(--surface2);}
+tbody tr:hover td{background:rgba(91,140,255,0.06);}
 .td-date{color:var(--accent2);font-weight:700;white-space:nowrap;font-size:12px;}
 .td-cat{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:var(--text);}
 .td-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12px;color:var(--text);}
@@ -221,6 +221,37 @@ select.filter-input{cursor:pointer;}
   .sb-item.success{color:var(--success);}
   .sb-item.error{color:var(--danger);}
   .sb-sep{color:var(--border2);}
+
+  /* ── 수기입력 테이블 그리드 ── */
+  .manual-hint{font-size:12px;color:var(--text-muted);margin-bottom:10px;padding:8px 12px;
+    background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);}
+  .manual-table-actions{display:flex;gap:10px;margin-top:14px;align-items:center;}
+  .manual-input{
+    width:100%;background:transparent;border:none;outline:none;
+    color:var(--text);font-size:12.5px;font-family:var(--font);
+    padding:0;min-width:60px;
+  }
+  .manual-input[type=date]{min-width:120px;}
+  .manual-input[type=number]{text-align:right;}
+  .manual-cell{
+    padding:0 !important;
+    background:transparent;
+  }
+  .manual-cell-inner{
+    padding:8px 13px;
+    min-height:36px;
+    display:flex;align-items:center;
+  }
+  .manual-cell:focus-within{
+    background:rgba(91,140,255,0.08) !important;
+    outline:2px solid var(--accent);
+    outline-offset:-2px;
+  }
+  /* 기존 manual-form CSS 제거용 */
+  .manual-form{display:none;}
+  .manual-grid{display:none;}
+  .manual-actions{display:none;}
+  .mf-group{display:none;}
 </style>
 </head>
 <body>
@@ -295,26 +326,24 @@ select.filter-input{cursor:pointer;}
 
     <!-- 수기입력 탭 -->
     <div id="low-manual" class="tab-panel">
-      <div class="manual-form">
-        <div class="manual-grid">
-          <div class="mf-group"><label>출고일 *</label><input type="date" id="lm-ship_date"></div>
-          <div class="mf-group"><label>거래처</label><input type="text" id="lm-customer_name" placeholder="서울대/유방내분비외과/김수진"></div>
-          <div class="mf-group"><label>담당자</label><input type="text" id="lm-rep" placeholder="안상수"></div>
-          <div class="mf-group"><label>카달로그번호</label><input type="text" id="lm-catalog_no" placeholder="S2807-100mg"></div>
-          <div class="mf-group mf-wide"><label>품명</label><input type="text" id="lm-item_name" placeholder="Dabrafenib (GSK2118436), 100mg"></div>
-          <div class="mf-group"><label>브랜드</label><input type="text" id="lm-brand" placeholder="sellekchem"></div>
-          <div class="mf-group"><label>입고가</label><input type="number" id="lm-cost_price" placeholder="2570000"></div>
-          <div class="mf-group"><label>출고가</label><input type="number" id="lm-sale_price" placeholder="2810000"></div>
-          <div class="mf-group"><label>마진율 (%)</label><input type="number" step="0.1" id="lm-margin_rate" placeholder="8.5"></div>
-          <div class="mf-group mf-wide"><label>사유</label><input type="text" id="lm-reason" placeholder="타업체 경쟁가 대응"></div>
-        </div>
-        <div class="manual-actions">
-          <button class="btn btn-ghost" onclick="clearLowManual()">초기화</button>
-          <button class="btn btn-success" onclick="saveLowManual()">💾 저장</button>
-          <button class="btn btn-primary" onclick="uploadLowManual()">📤 이슈모니터 업로드</button>
-        </div>
-        <div class="action-result" id="lm-result"></div>
+      <div class="manual-hint">💡 셀 클릭 후 입력 · 엑셀에서 복사 후 첫 번째 셀에 붙여넣기 가능</div>
+      <div class="table-wrap">
+        <table id="low-manual-table">
+          <thead><tr>
+            <th>출고일 *</th><th>거래처</th><th>담당자</th><th>카달로그번호</th>
+            <th>품명</th><th>브랜드</th><th>입고가</th><th>출고가</th><th>마진율(%)</th><th>사유</th>
+          </tr></thead>
+          <tbody id="low-manual-tbody"></tbody>
+        </table>
       </div>
+      <div class="manual-table-actions">
+        <button class="btn btn-ghost" onclick="addLowManualRow()">+ 행 추가</button>
+        <button class="btn btn-ghost" onclick="clearLowManualTable()">초기화</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-success" onclick="saveLowManual()">💾 저장</button>
+        <button class="btn btn-primary" onclick="uploadLowManual()">📤 이슈모니터 업로드</button>
+      </div>
+      <div class="action-result" id="lm-result"></div>
     </div>
 
     <!-- 히스토리 탭 -->
@@ -408,27 +437,24 @@ select.filter-input{cursor:pointer;}
 
     <!-- 수기입력 탭 -->
     <div id="return-manual" class="tab-panel">
-      <div class="manual-form">
-        <div class="manual-grid">
-          <div class="mf-group"><label>반품일 *</label><input type="date" id="rm-return_date"></div>
-          <div class="mf-group"><label>담당자</label><input type="text" id="rm-rep" placeholder="오범석"></div>
-          <div class="mf-group"><label>코드</label><input type="text" id="rm-code" placeholder="FG-I017-007-XS"></div>
-          <div class="mf-group mf-wide"><label>품명</label><input type="text" id="rm-item_name" placeholder="VoneTex AMG Nitrile Glove XS(100pcs)"></div>
-          <div class="mf-group"><label>수량</label><input type="number" id="rm-qty" placeholder="10"></div>
-          <div class="mf-group"><label>매입처</label><input type="text" id="rm-supplier" placeholder="재고사용"></div>
-          <div class="mf-group"><label>수주처</label><input type="text" id="rm-customer_name" placeholder="삼성서울병원/구매과"></div>
-          <div class="mf-group"><label>단가</label><input type="number" id="rm-unit_price" placeholder="57000"></div>
-          <div class="mf-group"><label>합계</label><input type="number" id="rm-total" placeholder="570000"></div>
-          <div class="mf-group mf-wide"><label>사유</label><input type="text" id="rm-reason" placeholder="나이트릴→라텍스 교환 요청"></div>
-          <div class="mf-group"><label>처리내용</label><input type="text" id="rm-process" value="반품" placeholder="반품"></div>
-        </div>
-        <div class="manual-actions">
-          <button class="btn btn-ghost" onclick="clearRetManual()">초기화</button>
-          <button class="btn btn-success" onclick="saveRetManual()">💾 저장</button>
-          <button class="btn btn-primary" onclick="uploadRetManual()">📤 이슈모니터 업로드</button>
-        </div>
-        <div class="action-result" id="rm-result"></div>
+      <div class="manual-hint">💡 셀 클릭 후 입력 · 엑셀에서 복사 후 첫 번째 셀에 붙여넣기 가능</div>
+      <div class="table-wrap">
+        <table id="ret-manual-table">
+          <thead><tr>
+            <th>반품일 *</th><th>담당자</th><th>코드</th><th>품명</th>
+            <th>수량</th><th>매입처</th><th>수주처</th><th>사유</th><th>처리내용</th><th>단가</th><th>합계</th>
+          </tr></thead>
+          <tbody id="ret-manual-tbody"></tbody>
+        </table>
       </div>
+      <div class="manual-table-actions">
+        <button class="btn btn-ghost" onclick="addRetManualRow()">+ 행 추가</button>
+        <button class="btn btn-ghost" onclick="clearRetManualTable()">초기화</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-success" onclick="saveRetManual()">💾 저장</button>
+        <button class="btn btn-primary" onclick="uploadRetManual()">📤 이슈모니터 업로드</button>
+      </div>
+      <div class="action-result" id="rm-result"></div>
     </div>
 
     <!-- 히스토리 탭 -->
@@ -999,6 +1025,14 @@ function removeQueueItem(queueId,id){
 // 초기화
 initYears('low-h-year');
 
+// 연도/월 변경 시 자동 조회
+['low-h-year','low-h-month'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', () => loadLowHistory());
+});
+['ret-h-year','ret-h-month'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', () => loadRetHistory());
+});
+
 // ── 탭 배지 카운트 ─────────────────────────────────
 function updateTabBadge(tab, count) {
   const el = document.getElementById(tab+'-tab-badge');
@@ -1015,99 +1049,194 @@ function setStatus(uploadMsg, dataMsg, cls='') {
   if(t) t.textContent = new Date().toLocaleTimeString('ko-KR');
 }
 
-// ── 10% 미만 수기입력 ─────────────────────────────
-function getLowManualRow() {
-  return {
-    ship_date:     document.getElementById('lm-ship_date').value || null,
-    customer_name: document.getElementById('lm-customer_name').value.trim() || null,
-    rep:           document.getElementById('lm-rep').value.trim() || null,
-    catalog_no:    document.getElementById('lm-catalog_no').value.trim() || null,
-    item_name:     document.getElementById('lm-item_name').value.trim() || null,
-    brand:         document.getElementById('lm-brand').value.trim() || null,
-    cost_price:    parseFloat(document.getElementById('lm-cost_price').value) || null,
-    sale_price:    parseFloat(document.getElementById('lm-sale_price').value) || null,
-    margin_rate:   parseFloat(document.getElementById('lm-margin_rate').value) || null,
-    reason:        document.getElementById('lm-reason').value.trim() || null,
-    doc_no:        null,
-  };
+// ══════════════════════════════════════════
+//  수기입력 테이블 그리드
+// ══════════════════════════════════════════
+
+// ── 셀 생성 헬퍼 ──
+function makeCell(type='text', value='', extraAttr='') {
+  return `<td class="manual-cell"><div class="manual-cell-inner"><input class="manual-input" type="${type}" value="${value}" ${extraAttr}></div></td>`;
 }
-function clearLowManual(){
-  ['lm-ship_date','lm-customer_name','lm-rep','lm-catalog_no','lm-item_name',
-   'lm-brand','lm-cost_price','lm-sale_price','lm-margin_rate','lm-reason']
-    .forEach(id => document.getElementById(id).value = '');
+
+// ── 붙여넣기 처리 (공통) ──
+function handlePaste(e, tbody, cols) {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  const rows = text.trim().split('\n').map(r => r.split('\t'));
+  const inputs = tbody.querySelectorAll('tr');
+  const startRow = e.target.closest('tr');
+  const startRowIdx = [...inputs].indexOf(startRow);
+  const startCell = e.target.closest('td');
+  const startColIdx = [...(startRow?.cells||[])].indexOf(startCell);
+
+  rows.forEach((rowData, ri) => {
+    let tr = inputs[startRowIdx + ri];
+    if (!tr) {
+      // 새 행 추가
+      const newRow = cols();
+      tbody.appendChild(newRow);
+      tr = newRow;
+    }
+    const cells = tr.querySelectorAll('.manual-input');
+    rowData.forEach((val, ci) => {
+      const cell = cells[startColIdx + ci];
+      if (cell) cell.value = val.trim();
+    });
+  });
+}
+
+// ── 10% 미만 수기입력 ──
+const LOW_COLS = ['ship_date','customer_name','rep','catalog_no','item_name','brand','cost_price','sale_price','margin_rate','reason'];
+
+function makeLowManualRow(data={}) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = [
+    makeCell('date',    data.ship_date||''),
+    makeCell('text',    data.customer_name||''),
+    makeCell('text',    data.rep||''),
+    makeCell('text',    data.catalog_no||''),
+    makeCell('text',    data.item_name||''),
+    makeCell('text',    data.brand||''),
+    makeCell('number',  data.cost_price||''),
+    makeCell('number',  data.sale_price||''),
+    makeCell('number',  data.margin_rate||'', 'step="0.1"'),
+    makeCell('text',    data.reason||''),
+  ].join('');
+  tr.addEventListener('paste', e => handlePaste(e, document.getElementById('low-manual-tbody'), makeLowManualRow));
+  return tr;
+}
+
+function addLowManualRow() {
+  document.getElementById('low-manual-tbody').appendChild(makeLowManualRow());
+}
+function clearLowManualTable() {
+  document.getElementById('low-manual-tbody').innerHTML = '';
+  addLowManualRow();
   document.getElementById('lm-result').textContent = '';
 }
-async function saveLowManual(){
-  const row = getLowManualRow();
-  if(!row.ship_date){ alert('출고일은 필수입니다.'); return; }
+
+function getLowManualRows() {
+  return [...document.querySelectorAll('#low-manual-tbody tr')].map(tr => {
+    const inputs = tr.querySelectorAll('.manual-input');
+    return {
+      ship_date:     inputs[0]?.value || null,
+      customer_name: inputs[1]?.value.trim() || null,
+      rep:           inputs[2]?.value.trim() || null,
+      catalog_no:    inputs[3]?.value.trim() || null,
+      item_name:     inputs[4]?.value.trim() || null,
+      brand:         inputs[5]?.value.trim() || null,
+      cost_price:    parseFloat(inputs[6]?.value) || null,
+      sale_price:    parseFloat(inputs[7]?.value) || null,
+      margin_rate:   parseFloat(inputs[8]?.value) || null,
+      reason:        inputs[9]?.value.trim() || null,
+      doc_no:        null,
+    };
+  }).filter(r => r.ship_date);
+}
+
+async function saveLowManual() {
+  const rows = getLowManualRows();
+  if(!rows.length){ alert('출고일이 입력된 행이 없습니다.'); return; }
   const res = document.getElementById('lm-result');
-  res.textContent = ''; res.className = 'action-result';
+  res.textContent=''; res.className='action-result';
   try{
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/low_margin_shipments', 'POST', [row]);
-    if(resp.ok||resp.status===201){ res.innerHTML='✅ 저장 완료!'; res.className='action-result success'; setStatus('💾 수기입력 저장됨','',  'success'); }
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/low_margin_shipments', 'POST', rows);
+    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 저장 완료!`; res.className='action-result success'; setStatus('💾 수기입력 저장됨','','success'); }
     else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
   }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
 }
-async function uploadLowManual(){
-  const row = getLowManualRow();
-  if(!row.ship_date){ alert('출고일은 필수입니다.'); return; }
+async function uploadLowManual() {
+  const rows = getLowManualRows();
+  if(!rows.length){ alert('출고일이 입력된 행이 없습니다.'); return; }
   const res = document.getElementById('lm-result');
-  res.textContent = ''; res.className = 'action-result';
+  res.textContent=''; res.className='action-result';
   try{
-    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/low_margin_shipments', 'POST', [row]);
-    if(resp.ok||resp.status===201){ res.innerHTML='✅ 이슈모니터 업로드 완료!'; res.className='action-result success'; setStatus('📤 이슈모니터 업로드됨','','success'); }
-    else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
+    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/low_margin_shipments', 'POST', rows);
+    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 이슈모니터 업로드 완료!`; res.className='action-result success'; setStatus('📤 이슈모니터 업로드됨','','success'); }
+    else{ const e=await resp.json().catch(()=>({})); if(e.code==='23505'){res.textContent='⚠️ 중복 포함 — 신규건만 업로드됨';res.className='action-result warn';}else throw new Error(e.message||`HTTP ${resp.status}`); }
   }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
 }
 
-// ── 반품 수기입력 ─────────────────────────────────
-function getRetManualRow() {
-  const qty = parseFloat(document.getElementById('rm-qty').value) || null;
-  const unit_price = parseFloat(document.getElementById('rm-unit_price').value) || null;
-  return {
-    return_date:   document.getElementById('rm-return_date').value || null,
-    rep:           document.getElementById('rm-rep').value.trim() || null,
-    code:          document.getElementById('rm-code').value.trim() || null,
-    item_name:     document.getElementById('rm-item_name').value.trim() || null,
-    qty,
-    supplier:      document.getElementById('rm-supplier').value.trim() || null,
-    customer_name: document.getElementById('rm-customer_name').value.trim() || null,
-    unit_price,
-    total:         document.getElementById('rm-total').value ? parseFloat(document.getElementById('rm-total').value) : (qty&&unit_price?qty*unit_price:null),
-    reason:        document.getElementById('rm-reason').value.trim() || null,
-    process:       document.getElementById('rm-process').value.trim() || '반품',
-    doc_no:        null,
-  };
+// ── 반품 수기입력 ──
+function makeRetManualRow(data={}) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = [
+    makeCell('date',   data.return_date||''),
+    makeCell('text',   data.rep||''),
+    makeCell('text',   data.code||''),
+    makeCell('text',   data.item_name||''),
+    makeCell('number', data.qty||''),
+    makeCell('text',   data.supplier||''),
+    makeCell('text',   data.customer_name||''),
+    makeCell('text',   data.reason||''),
+    makeCell('text',   data.process||'반품'),
+    makeCell('number', data.unit_price||''),
+    makeCell('number', data.total||''),
+  ].join('');
+  tr.addEventListener('paste', e => handlePaste(e, document.getElementById('ret-manual-tbody'), makeRetManualRow));
+  return tr;
 }
-function clearRetManual(){
-  ['rm-return_date','rm-rep','rm-code','rm-item_name','rm-qty','rm-supplier',
-   'rm-customer_name','rm-unit_price','rm-total','rm-reason']
-    .forEach(id => document.getElementById(id).value = '');
-  document.getElementById('rm-process').value = '반품';
+
+function addRetManualRow() {
+  document.getElementById('ret-manual-tbody').appendChild(makeRetManualRow());
+}
+function clearRetManualTable() {
+  document.getElementById('ret-manual-tbody').innerHTML = '';
+  addRetManualRow();
   document.getElementById('rm-result').textContent = '';
 }
-async function saveRetManual(){
-  const row = getRetManualRow();
-  if(!row.return_date){ alert('반품일은 필수입니다.'); return; }
+
+function getRetManualRows() {
+  return [...document.querySelectorAll('#ret-manual-tbody tr')].map(tr => {
+    const inputs = tr.querySelectorAll('.manual-input');
+    const qty = parseFloat(inputs[4]?.value) || null;
+    const unit_price = parseFloat(inputs[9]?.value) || null;
+    return {
+      return_date:   inputs[0]?.value || null,
+      rep:           inputs[1]?.value.trim() || null,
+      code:          inputs[2]?.value.trim() || null,
+      item_name:     inputs[3]?.value.trim() || null,
+      qty,
+      supplier:      inputs[5]?.value.trim() || null,
+      customer_name: inputs[6]?.value.trim() || null,
+      reason:        inputs[7]?.value.trim() || null,
+      process:       inputs[8]?.value.trim() || '반품',
+      unit_price,
+      total:         parseFloat(inputs[10]?.value) || (qty&&unit_price?qty*unit_price:null),
+      doc_no:        null,
+    };
+  }).filter(r => r.return_date);
+}
+
+async function saveRetManual() {
+  const rows = getRetManualRows();
+  if(!rows.length){ alert('반품일이 입력된 행이 없습니다.'); return; }
   const res = document.getElementById('rm-result');
-  res.textContent = ''; res.className = 'action-result';
+  res.textContent=''; res.className='action-result';
   try{
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/return_shipments', 'POST', [row]);
-    if(resp.ok||resp.status===201){ res.innerHTML='✅ 저장 완료!'; res.className='action-result success'; setStatus('💾 수기입력 저장됨','','success'); }
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/return_shipments', 'POST', rows);
+    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 저장 완료!`; res.className='action-result success'; setStatus('💾 수기입력 저장됨','','success'); }
     else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
   }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
 }
-async function uploadRetManual(){
-  const row = getRetManualRow();
-  if(!row.return_date){ alert('반품일은 필수입니다.'); return; }
+async function uploadRetManual() {
+  const rows = getRetManualRows();
+  if(!rows.length){ alert('반품일이 입력된 행이 없습니다.'); return; }
   const res = document.getElementById('rm-result');
-  res.textContent = ''; res.className = 'action-result';
+  res.textContent=''; res.className='action-result';
   try{
-    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/return_shipments', 'POST', [row]);
-    if(resp.ok||resp.status===201){ res.innerHTML='✅ 이슈모니터 업로드 완료!'; res.className='action-result success'; setStatus('📤 이슈모니터 업로드됨','','success'); }
-    else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
+    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/return_shipments', 'POST', rows);
+    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 이슈모니터 업로드 완료!`; res.className='action-result success'; setStatus('📤 이슈모니터 업로드됨','','success'); }
+    else{ const e=await resp.json().catch(()=>({})); if(e.code==='23505'){res.textContent='⚠️ 중복 포함 — 신규건만 업로드됨';res.className='action-result warn';}else throw new Error(e.message||`HTTP ${resp.status}`); }
   }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
 }
+
+// 수기입력 탭 열릴 때 초기 행 추가
+function initManualTables() {
+  if(!document.querySelector('#low-manual-tbody tr')) addLowManualRow();
+  if(!document.querySelector('#ret-manual-tbody tr')) addRetManualRow();
+}
+document.addEventListener('DOMContentLoaded', initManualTables);
 
 </script>
 </body>
