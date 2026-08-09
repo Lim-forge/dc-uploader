@@ -8,8 +8,8 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root {
-  --bg:#080b14;--surface:#0e1220;--surface2:#151929;--surface3:#1c2236;
-  --border:#232840;--border2:#2d3455;
+  --bg:#1a1d2e;--surface:#21253a;--surface2:#272b42;--surface3:#2d3150;
+  --border:#323660;--border2:#3a3e68;
   --accent:#5b8cff;--accent2:#7ca4ff;--accent-dim:rgba(91,140,255,0.1);--accent-glow:rgba(91,140,255,0.25);
   --gold:#f5c842;--gold-dim:rgba(245,200,66,0.12);
   --success:#3ecf8e;--success-dim:rgba(62,207,142,0.1);
@@ -119,9 +119,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 
 /* ── 테이블 ── */
 .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);
-  background:#171c30;box-shadow:0 4px 16px rgba(0,0,0,0.15);}
+  background:#1f2235;box-shadow:0 2px 12px rgba(0,0,0,0.1);}
 table{width:100%;border-collapse:collapse;font-size:12.5px;}
-thead tr{background:#1e2444;border-bottom:1px solid rgba(255,255,255,0.1);}
+thead tr{background:#252840;border-bottom:1px solid rgba(255,255,255,0.08);}
 th{padding:10px 13px;color:var(--text-sub);font-weight:700;font-size:11px;
   text-transform:uppercase;letter-spacing:0.08em;text-align:left;white-space:nowrap;}
 td{padding:9px 13px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text);vertical-align:middle;}
@@ -319,8 +319,7 @@ select.filter-input{cursor:pointer;}
         </div>
         <div class="action-bar">
           <button class="btn btn-ghost" onclick="clearLow()">초기화</button>
-          <button class="btn btn-success" id="low-save-btn" onclick="saveLow()" disabled>💾 저장</button>
-          <button class="btn btn-primary" id="low-upload-btn" onclick="uploadLow()" disabled>📤 이슈모니터 업로드</button>
+          <button class="btn btn-success" id="low-save-btn" onclick="saveLow()" disabled>💾 히스토리에 저장</button>
         </div>
         <div class="action-result" id="low-result"></div>
       </div>
@@ -342,8 +341,7 @@ select.filter-input{cursor:pointer;}
         <button class="btn btn-ghost" onclick="addLowManualRow()">+ 행 추가</button>
         <button class="btn btn-ghost" onclick="clearLowManualTable()">초기화</button>
         <div style="flex:1"></div>
-        <button class="btn btn-success" onclick="saveLowManual()">💾 저장</button>
-        <button class="btn btn-primary" onclick="uploadLowManual()">📤 이슈모니터 업로드</button>
+        <button class="btn btn-success" onclick="saveLowManual()">💾 히스토리에 저장</button>
       </div>
       <div class="action-result" id="lm-result"></div>
     </div>
@@ -388,7 +386,7 @@ select.filter-input{cursor:pointer;}
         <table>
           <thead><tr>
             <th>출고일</th><th>거래처</th><th>담당자</th><th>카달로그번호</th>
-            <th>품명</th><th>브랜드</th><th>입고가</th><th>출고가</th><th>마진율</th><th>사유</th><th>저장일</th>
+            <th>품명</th><th>브랜드</th><th>입고가</th><th>출고가</th><th>마진율</th><th>사유</th><th>저장일</th><th>업로드</th><th>액션</th>
           </tr></thead>
           <tbody id="low-h-tbody"></tbody>
         </table>
@@ -430,8 +428,7 @@ select.filter-input{cursor:pointer;}
         </div>
         <div class="action-bar">
           <button class="btn btn-ghost" onclick="clearRet()">초기화</button>
-          <button class="btn btn-success" id="ret-save-btn" onclick="saveRet()" disabled>💾 저장</button>
-          <button class="btn btn-primary" id="ret-upload-btn" onclick="uploadRet()" disabled>📤 이슈모니터 업로드</button>
+          <button class="btn btn-success" id="ret-save-btn" onclick="saveRet()" disabled>💾 히스토리에 저장</button>
         </div>
         <div class="action-result" id="ret-result"></div>
       </div>
@@ -453,8 +450,7 @@ select.filter-input{cursor:pointer;}
         <button class="btn btn-ghost" onclick="addRetManualRow()">+ 행 추가</button>
         <button class="btn btn-ghost" onclick="clearRetManualTable()">초기화</button>
         <div style="flex:1"></div>
-        <button class="btn btn-success" onclick="saveRetManual()">💾 저장</button>
-        <button class="btn btn-primary" onclick="uploadRetManual()">📤 이슈모니터 업로드</button>
+        <button class="btn btn-success" onclick="saveRetManual()">💾 히스토리에 저장</button>
       </div>
       <div class="action-result" id="rm-result"></div>
     </div>
@@ -499,7 +495,7 @@ select.filter-input{cursor:pointer;}
         <table>
           <thead><tr>
             <th>반품일</th><th>담당자</th><th>코드</th><th>품명</th>
-            <th>수량</th><th>매입처</th><th>수주처</th><th>사유</th><th>처리내용</th><th>단가</th><th>합계</th><th>저장일</th>
+            <th>수량</th><th>매입처</th><th>수주처</th><th>사유</th><th>처리내용</th><th>단가</th><th>합계</th><th>저장일</th><th>업로드</th><th>액션</th>
           </tr></thead>
           <tbody id="ret-h-tbody"></tbody>
         </table>
@@ -762,7 +758,7 @@ async function loadLowHistory(){
   document.getElementById('low-stats').innerHTML='';
   let qs=buildQueryString('low');
   try{
-    const resp=await fetch(`${UPLOADER_URL}/rest/v1/low_margin_shipments?${qs}&order=ship_date.desc&limit=500`,
+    const resp=await fetch(`${UPLOADER_URL}/rest/v1/low_margin_shipments?${qs}&order=ship_date.asc&limit=500`,
       {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
@@ -770,16 +766,24 @@ async function loadLowHistory(){
     if(!data.length){tbody.innerHTML='<tr class="loading-row"><td colspan="11"><div class="empty-state"><div class="ei">📭</div>조회 결과가 없습니다</div></td></tr>';return;}
     tbody.innerHTML=data.map(r=>`<tr>
       <td class="td-date">${fmtDate(r.ship_date)}</td>
-      <td class="td-sub">${esc(r.customer_name||'-')}</td>
+      <td>${esc(r.customer_name||'-')}</td>
       <td>${esc(r.rep||'-')}</td>
       <td class="td-cat">${esc(r.catalog_no||'-')}</td>
-      <td class="td-sub">${esc(r.item_name||'-')}</td>
-      <td class="td-sub">${esc(r.brand||'-')}</td>
+      <td>${esc(r.item_name||'-')}</td>
+      <td>${esc(r.brand||'-')}</td>
       <td class="td-num">${fmt(r.cost_price)}</td>
       <td class="td-num">${fmt(r.sale_price)}</td>
       <td class="td-margin">${r.margin_rate!=null?r.margin_rate+'%':'-'}</td>
-      <td class="td-sub">${esc(r.reason||'-')}</td>
-      <td class="td-sub" style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
+      <td>${esc(r.reason||'-')}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
+      <td>${r.is_uploaded
+        ? '<span style="color:#3ecf8e;font-size:11px;font-weight:700;">✅ 완료</span>'
+        : `<button onclick="uploadHistoryRow('low','${r.id}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--accent-dim);color:var(--accent);cursor:pointer;white-space:nowrap;">📤 업로드</button>`}
+      </td>
+      <td style="white-space:nowrap;">
+        <button onclick="editHistoryRow('low','${r.id}',this)" title="수정" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">✏️</button>
+        <button onclick="deleteHistoryRow('low','${r.id}',this)" title="삭제" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">🗑️</button>
+      </td>
     </tr>`).join('');
   }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="11" style="color:var(--danger)">❌ ${esc(e.message)}</td></tr>`;}
 }
@@ -928,7 +932,7 @@ async function loadRetHistory(){
   document.getElementById('ret-stats').innerHTML='';
   let qs=buildQueryString('ret');
   try{
-    const resp=await fetch(`${UPLOADER_URL}/rest/v1/return_shipments?${qs}&order=return_date.desc&limit=500`,
+    const resp=await fetch(`${UPLOADER_URL}/rest/v1/return_shipments?${qs}&order=return_date.asc&limit=500`,
       {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
@@ -938,15 +942,23 @@ async function loadRetHistory(){
       <td class="td-date">${fmtDate(r.return_date)}</td>
       <td>${esc(r.rep||'-')}</td>
       <td class="td-cat">${esc(r.code||'-')}</td>
-      <td class="td-sub">${esc(r.item_name||'-')}</td>
+      <td>${esc(r.item_name||'-')}</td>
       <td class="td-num">${fmt(r.qty)}</td>
-      <td class="td-sub">${esc(r.supplier||'-')}</td>
-      <td class="td-sub">${esc(r.customer_name||'-')}</td>
-      <td class="td-sub">${esc(r.reason||'-')}</td>
+      <td>${esc(r.supplier||'-')}</td>
+      <td>${esc(r.customer_name||'-')}</td>
+      <td>${esc(r.reason||'-')}</td>
       <td><span style="background:var(--warn-dim);color:var(--warn);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">${esc(r.process||'-')}</span></td>
       <td class="td-num">${fmt(r.unit_price)}</td>
       <td class="td-num" style="font-weight:700;color:var(--accent2)">${fmt(r.total)}</td>
-      <td class="td-sub" style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
+      <td>${r.is_uploaded
+        ? '<span style="color:#3ecf8e;font-size:11px;font-weight:700;">✅ 완료</span>'
+        : `<button onclick="uploadHistoryRow('ret','${r.id}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--accent-dim);color:var(--accent);cursor:pointer;white-space:nowrap;">📤 업로드</button>`}
+      </td>
+      <td style="white-space:nowrap;">
+        <button onclick="editHistoryRow('ret','${r.id}',this)" title="수정" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">✏️</button>
+        <button onclick="deleteHistoryRow('ret','${r.id}',this)" title="삭제" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">🗑️</button>
+      </td>
     </tr>`).join('');
   }catch(e){tbody.innerHTML=`<tr class="loading-row"><td colspan="12" style="color:var(--danger)">❌ ${esc(e.message)}</td></tr>`;}
 }
@@ -1151,21 +1163,11 @@ async function saveLowManual() {
   res.textContent=''; res.className='action-result';
   try{
     const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/low_margin_shipments', 'POST', rows);
-    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 저장 완료!`; res.className='action-result success'; setStatus('💾 수기입력 저장됨','','success'); }
+    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 저장 완료!`; res.className='action-result success'; setStatus('💾 수기입력 저장됨','','success'); setTimeout(()=>switchSub('low','history'),800); }
     else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
   }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
 }
-async function uploadLowManual() {
-  const rows = getLowManualRows();
-  if(!rows.length){ alert('출고일이 입력된 행이 없습니다.'); return; }
-  const res = document.getElementById('lm-result');
-  res.textContent=''; res.className='action-result';
-  try{
-    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/low_margin_shipments', 'POST', rows);
-    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 이슈모니터 업로드 완료!`; res.className='action-result success'; setStatus('📤 이슈모니터 업로드됨','','success'); }
-    else{ const e=await resp.json().catch(()=>({})); if(e.code==='23505'){res.textContent='⚠️ 중복 포함 — 신규건만 업로드됨';res.className='action-result warn';}else throw new Error(e.message||`HTTP ${resp.status}`); }
-  }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
-}
+// uploadLowManual 제거 - 히스토리에서 업로드
 
 // ── 반품 수기입력 ──
 function makeRetManualRow(data={}) {
@@ -1225,21 +1227,11 @@ async function saveRetManual() {
   res.textContent=''; res.className='action-result';
   try{
     const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/return_shipments', 'POST', rows);
-    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 저장 완료!`; res.className='action-result success'; setStatus('💾 수기입력 저장됨','','success'); }
+    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 저장 완료!`; res.className='action-result success'; setStatus('💾 수기입력 저장됨','','success'); setTimeout(()=>switchSub('low','history'),800); }
     else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
   }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
 }
-async function uploadRetManual() {
-  const rows = getRetManualRows();
-  if(!rows.length){ alert('반품일이 입력된 행이 없습니다.'); return; }
-  const res = document.getElementById('rm-result');
-  res.textContent=''; res.className='action-result';
-  try{
-    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/return_shipments', 'POST', rows);
-    if(resp.ok||resp.status===201){ res.innerHTML=`✅ ${rows.length}행 이슈모니터 업로드 완료!`; res.className='action-result success'; setStatus('📤 이슈모니터 업로드됨','','success'); }
-    else{ const e=await resp.json().catch(()=>({})); if(e.code==='23505'){res.textContent='⚠️ 중복 포함 — 신규건만 업로드됨';res.className='action-result warn';}else throw new Error(e.message||`HTTP ${resp.status}`); }
-  }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
-}
+// uploadRetManual 제거 - 히스토리에서 업로드
 
 // 수기입력 탭 열릴 때 초기 행 추가
 function initManualTables() {
@@ -1247,6 +1239,151 @@ function initManualTables() {
   if(!document.querySelector('#ret-manual-tbody tr')) addRetManualRow();
 }
 document.addEventListener('DOMContentLoaded', initManualTables);
+
+
+// ══════════════════════════════════════════
+//  히스토리 액션 (업로드/수정/삭제)
+// ══════════════════════════════════════════
+
+// 히스토리에서 이슈모니터 업로드
+async function uploadHistoryRow(tab, id) {
+  const isLow = tab === 'low';
+  const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
+
+  // 업로더 DB에서 해당 행 가져오기
+  const getResp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}&select=*`,
+    {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+  const rows = await getResp.json();
+  if(!rows.length){ alert('데이터를 찾을 수 없습니다.'); return; }
+
+  const row = {...rows[0]};
+  delete row.id; delete row.created_at; delete row.is_uploaded;
+
+  // 이슈모니터 DB에 insert
+  const uploadResp = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/${tbl}`, 'POST', [row]);
+  if(uploadResp.ok || uploadResp.status === 201) {
+    // 업로더 DB is_uploaded = true 업데이트
+    await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
+      body:JSON.stringify({is_uploaded:true})
+    });
+    setStatus('📤 이슈모니터 업로드 완료!','','success');
+    // 히스토리 새로고침
+    if(isLow) loadLowHistory(); else loadRetHistory();
+  } else {
+    const e = await uploadResp.json().catch(()=>({}));
+    if(e.code==='23505'){
+      // 이미 업로드됨 → is_uploaded만 true로
+      await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
+        body:JSON.stringify({is_uploaded:true})
+      });
+      if(isLow) loadLowHistory(); else loadRetHistory();
+    } else {
+      alert('❌ 업로드 실패: ' + (e.message||'오류'));
+    }
+  }
+}
+
+// 히스토리 행 수정 (인라인)
+function editHistoryRow(tab, id, btn) {
+  const tr = btn.closest('tr');
+  const cells = [...tr.querySelectorAll('td')];
+  const isLow = tab === 'low';
+
+  // 이미 편집 중이면 저장
+  if(tr.dataset.editing === 'true') {
+    saveEditHistoryRow(tab, id, tr);
+    return;
+  }
+
+  tr.dataset.editing = 'true';
+  btn.textContent = '💾';
+  btn.title = '저장';
+
+  // 편집 가능한 셀 인덱스 (업로드/액션 컬럼 제외)
+  const editableCols = isLow
+    ? [0,1,2,3,4,5,6,7,8,9]   // 출고일~사유
+    : [0,1,2,3,4,5,6,7,9,10]; // 반품일~합계 (처리내용 제외)
+
+  editableCols.forEach(i => {
+    const td = cells[i];
+    if(!td) return;
+    const val = td.textContent.trim();
+    const type = (i===0) ? 'date' : (i>=6&&i<=10) ? 'number' : 'text';
+    td.innerHTML = `<input style="width:100%;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px;" type="${type}" value="${val.replace(/%$/,'')}">`;
+  });
+}
+
+async function saveEditHistoryRow(tab, id, tr) {
+  const isLow = tab === 'low';
+  const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
+  const cells = [...tr.querySelectorAll('td')];
+  const inputs = tr.querySelectorAll('input');
+
+  let update = {};
+  if(isLow){
+    update = {
+      ship_date:     inputs[0]?.value||null,
+      customer_name: inputs[1]?.value.trim()||null,
+      rep:           inputs[2]?.value.trim()||null,
+      catalog_no:    inputs[3]?.value.trim()||null,
+      item_name:     inputs[4]?.value.trim()||null,
+      brand:         inputs[5]?.value.trim()||null,
+      cost_price:    parseFloat(inputs[6]?.value)||null,
+      sale_price:    parseFloat(inputs[7]?.value)||null,
+      margin_rate:   parseFloat(inputs[8]?.value)||null,
+      reason:        inputs[9]?.value.trim()||null,
+    };
+  } else {
+    update = {
+      return_date:   inputs[0]?.value||null,
+      rep:           inputs[1]?.value.trim()||null,
+      code:          inputs[2]?.value.trim()||null,
+      item_name:     inputs[3]?.value.trim()||null,
+      qty:           parseFloat(inputs[4]?.value)||null,
+      supplier:      inputs[5]?.value.trim()||null,
+      customer_name: inputs[6]?.value.trim()||null,
+      reason:        inputs[7]?.value.trim()||null,
+      unit_price:    parseFloat(inputs[8]?.value)||null,
+      total:         parseFloat(inputs[9]?.value)||null,
+    };
+  }
+
+  const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
+    body:JSON.stringify(update)
+  });
+
+  if(resp.ok){
+    setStatus('✏️ 수정 완료!','','success');
+    if(isLow) loadLowHistory(); else loadRetHistory();
+  } else {
+    alert('❌ 수정 실패');
+  }
+}
+
+// 히스토리 행 삭제
+async function deleteHistoryRow(tab, id, btn) {
+  if(!confirm('이 항목을 삭제할까요?')) return;
+  const isLow = tab === 'low';
+  const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
+
+  const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
+    method:'DELETE',
+    headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}
+  });
+
+  if(resp.ok){
+    setStatus('🗑️ 삭제 완료','','');
+    if(isLow) loadLowHistory(); else loadRetHistory();
+  } else {
+    alert('❌ 삭제 실패');
+  }
+}
 
 </script>
 </body>
