@@ -29,12 +29,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   background:linear-gradient(90deg,var(--accent),rgba(91,140,255,0.3),transparent);pointer-events:none;}
 .hero-card{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;width:100%;position:relative;}
 .hero h1{font-size:19px;font-weight:800;letter-spacing:-0.02em;
-  background:linear-gradient(135deg,#fff 40%,var(--accent2));-webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;background-clip:text;line-height:1;
-  position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;}
+  background: linear-gradient(90deg, #e8eaff, #4a7fc1, #a8c8ff, #ffffff, #4a7fc1, #e8eaff);
+  background-size: 300% 100%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;line-height:1;
+  position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;
+  animation: gradient-flow 6s ease infinite;}
 .hero-sub{margin-top:3px;font-size:11.5px;color:var(--text-muted);}
-.hero-credit{font-size:13px;font-weight:700;color:var(--gold);letter-spacing:0.02em;
-  text-shadow:0 0 12px rgba(245,200,66,0.35);display:flex;align-items:center;gap:9px;margin-left:auto;}
+.hero-credit{font-size:13px;font-weight:700;letter-spacing:0.02em;
+  display:flex;align-items:center;gap:9px;margin-left:auto;
+  background:linear-gradient(90deg,#f5c842,#ffe88a,#f5c842,#e8a820,#f5c842,#ffe88a,#f5c842);
+  background-size:300% 100%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:gradient-flow 5s ease infinite;}
 .hero-credit span{opacity:0.5;font-weight:400;font-size:11px;}
 .hero-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;object-position:center top;
   border:1.5px solid var(--gold);box-shadow:0 0 0 2px rgba(245,200,66,0.15),0 0 10px rgba(245,200,66,0.2);flex-shrink:0;}
@@ -263,6 +271,110 @@ select.filter-input{cursor:pointer;}
   }
   .bulk-info{font-size:13px;color:var(--text-sub);}
   .bulk-info strong{color:var(--accent2);}
+
+  /* ════════════════════════════════
+     이펙트 애니메이션
+  ════════════════════════════════ */
+
+  /* 헤더 선 shimmer */
+  @keyframes shimmer-line {
+    0%   { background-position: -100% center; }
+    100% { background-position: 200% center; }
+  }
+  .hero::after {
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      transparent 20%,
+      rgba(74,127,193,0.4) 35%,
+      rgba(160,210,255,0.9) 48%,
+      rgba(220,240,255,1) 50%,
+      rgba(160,210,255,0.9) 52%,
+      rgba(74,127,193,0.4) 65%,
+      transparent 80%,
+      transparent 100%
+    );
+    background-size: 300% 100%;
+    animation: shimmer-line 8s linear infinite;
+  }
+
+  /* 제목 그라데이션 흐르기 */
+  @keyframes gradient-flow {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* 탭 패널 페이드인 */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .tab-panel.active {
+    animation: fadeIn 0.22s ease-out;
+  }
+
+  /* 카드 호버 떠오르기 */
+  .main-tab {
+    transition: all 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+  }
+  .main-tab:hover {
+    transform: translateY(-2px) !important;
+  }
+  .main-tab.active {
+    transform: translateY(-1px) !important;
+  }
+  .stat-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+  }
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
+  }
+
+  /* 토스트 알림 */
+  #toast-container {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .toast {
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 260px;
+    animation: toast-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .toast.out {
+    animation: toast-out 0.3s ease forwards;
+  }
+  @keyframes toast-in {
+    from { opacity:0; transform: translateX(60px) scale(0.9); }
+    to   { opacity:1; transform: translateX(0) scale(1); }
+  }
+  @keyframes toast-out {
+    from { opacity:1; transform: translateX(0) scale(1); }
+    to   { opacity:0; transform: translateX(60px) scale(0.9); }
+  }
+  .toast.success { background: linear-gradient(135deg,#1a7a55,#2a9d6e); border-left: 3px solid #38b87e; }
+  .toast.error   { background: linear-gradient(135deg,#7a2020,#a83232); border-left: 3px solid #d95f5f; }
+  .toast.info    { background: linear-gradient(135deg,#1a3a6a,#2a5498); border-left: 3px solid #4a7fc1; }
+  .toast-icon { font-size: 18px; }
+  .toast-msg  { flex:1; line-height:1.4; }
+
 </style>
 </head>
 <body>
@@ -825,16 +937,24 @@ function renderLowStats(data){
   const totalOut=data.reduce((s,r)=>s+(r.sale_price||0),0);
   const notUploaded=data.filter(r=>!r.is_uploaded);
   document.getElementById('low-stats').innerHTML=`
-    <div class="stat-card"><div class="sv blue">${total}</div><div class="sk">전체 건수</div></div>
-    <div class="stat-card"><div class="sv red">${avgMargin}%</div><div class="sk">평균 마진율</div></div>
-    <div class="stat-card"><div class="sv gold">${fmt(totalOut)}</div><div class="sk">총 출고금액</div></div>
-    <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}">${notUploaded.length}</div><div class="sk">미업로드</div></div>`;
+    <div class="stat-card"><div class="sv blue" id="lsv-cnt">0</div><div class="sk">전체 건수</div></div>
+    <div class="stat-card"><div class="sv red" id="lsv-avg">0%</div><div class="sk">평균 마진율</div></div>
+    <div class="stat-card"><div class="sv gold" id="lsv-out">0</div><div class="sk">총 출고금액</div></div>
+    <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}" id="lsv-nu">0</div><div class="sk">미업로드</div></div>`;
+  countUp(document.getElementById('lsv-cnt'), total);
+  countUp(document.getElementById('lsv-avg'), parseFloat(avgMargin), 800, '%');
+  countUp(document.getElementById('lsv-out'), totalOut);
+  countUp(document.getElementById('lsv-nu'), notUploaded.length);
   // 미업로드 바 표시
   const bar = document.getElementById('low-bulk-bar');
   const info = document.getElementById('low-bulk-info');
   if(notUploaded.length > 0){
     bar.style.display = 'flex';
-    info.innerHTML = `미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
+    const yr2 = document.getElementById('ret-h-year')?.value;
+    const mo2 = document.getElementById('ret-h-month')?.value;
+    const periodTxt2 = yr2 && mo2 ? `${yr2}-${String(mo2).padStart(2,'0')} ` : yr2 ? `${yr2}년 ` : '';
+    info.innerHTML = `${periodTxt2}미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
+    document.getElementById('ret-bulk-btn').textContent = `📤 ${periodTxt2}미업로드 ${notUploaded.length}건 일괄 업로드`;
     bar._ids = notUploaded.map(r=>r.id);
     bar._data = notUploaded;
   } else {
@@ -1013,15 +1133,23 @@ function renderRetStats(data){
   const totalAmt=data.reduce((s,r)=>s+(r.total||0),0);
   const notUploaded=data.filter(r=>!r.is_uploaded);
   document.getElementById('ret-stats').innerHTML=`
-    <div class="stat-card"><div class="sv blue">${total}</div><div class="sk">전체 건수</div></div>
-    <div class="stat-card"><div class="sv green">${fmt(totalQty)}</div><div class="sk">총 반품 수량</div></div>
-    <div class="stat-card"><div class="sv gold">${fmt(totalAmt)}</div><div class="sk">총 반품 금액</div></div>
-    <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}">${notUploaded.length}</div><div class="sk">미업로드</div></div>`;
+    <div class="stat-card"><div class="sv blue" id="rsv-cnt">0</div><div class="sk">전체 건수</div></div>
+    <div class="stat-card"><div class="sv green" id="rsv-qty">0</div><div class="sk">총 반품 수량</div></div>
+    <div class="stat-card"><div class="sv gold" id="rsv-amt">0</div><div class="sk">총 반품 금액</div></div>
+    <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}" id="rsv-nu">0</div><div class="sk">미업로드</div></div>`;
+  countUp(document.getElementById('rsv-cnt'), total);
+  countUp(document.getElementById('rsv-qty'), totalQty);
+  countUp(document.getElementById('rsv-amt'), totalAmt);
+  countUp(document.getElementById('rsv-nu'), notUploaded.length);
   const bar = document.getElementById('ret-bulk-bar');
   const info = document.getElementById('ret-bulk-info');
   if(notUploaded.length > 0){
     bar.style.display = 'flex';
-    info.innerHTML = `미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
+    const yr2 = document.getElementById('ret-h-year')?.value;
+    const mo2 = document.getElementById('ret-h-month')?.value;
+    const periodTxt2 = yr2 && mo2 ? `${yr2}-${String(mo2).padStart(2,'0')} ` : yr2 ? `${yr2}년 ` : '';
+    info.innerHTML = `${periodTxt2}미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
+    document.getElementById('ret-bulk-btn').textContent = `📤 ${periodTxt2}미업로드 ${notUploaded.length}건 일괄 업로드`;
     bar._ids = notUploaded.map(r=>r.id);
     bar._data = notUploaded;
   } else {
@@ -1125,6 +1253,11 @@ function setStatus(uploadMsg, dataMsg, cls='') {
   if(u){ u.textContent = uploadMsg; u.className = 'sb-item '+(cls||''); }
   if(d && dataMsg) { d.textContent = dataMsg; }
   if(t) t.textContent = new Date().toLocaleTimeString('ko-KR');
+  // 토스트도 함께
+  if(uploadMsg && uploadMsg !== '💾 준비됨') {
+    const type = cls==='success'?'success':cls==='error'?'error':'info';
+    showToast(uploadMsg, type);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1524,6 +1657,42 @@ async function bulkUpload(tab) {
   }
 }
 
+
+// ══════════════════════════════════════════
+//  이펙트
+// ══════════════════════════════════════════
+
+// 토스트 알림
+function showToast(msg, type='success', duration=3000) {
+  const icons = { success:'✦', error:'✕', info:'◈' };
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="toast-icon">${icons[type]||'✦'}</span><span class="toast-msg">${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('out');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// 숫자 카운트업
+function countUp(el, target, duration=800, suffix='') {
+  const start = 0;
+  const startTime = performance.now();
+  const isFloat = String(target).includes('.');
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+    const current = start + (target - start) * eased;
+    el.textContent = (isFloat ? current.toFixed(1) : Math.floor(current).toLocaleString('ko-KR')) + suffix;
+    if(progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
 </script>
+<div id="toast-container"></div>
 </body>
 </html>
