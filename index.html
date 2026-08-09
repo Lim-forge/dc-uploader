@@ -854,7 +854,7 @@ async function parseLowPdf(text, file){
           .sort((a,b) => a.y-b.y || a.x-b.x);
         if(nameItems.length > 0) {
           const prod = products.find(p => p.카달로그번호 === code);
-          if(prod) prod.item_name = nameItems.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
+          if(prod) prod.item_name = nameItems.map(i=>i.str).join(' ').replace(/\s+/g,' ').replace(/\s*g\b/g,'g').replace(/\s*\)/g,')').replace(/\s*,/g,',').trim();
         }
       });
     } catch(e) { /* fallback: 기존 품명 유지 */ }
@@ -1069,7 +1069,7 @@ async function parseRetPdf(text, file){
           const x = Math.round(it.transform[4]);
           const y = Math.round(h2 - it.transform[5]);
           const s = it.str.trim();
-          if(s && x>=260 && x<=389 && !s.includes('품명')) {
+          if(s && x>=275 && x<=389 && !s.includes('품명') && !s.includes('원수주단가')) {
             nameItems.push({y, x, str:s});
           }
         });
