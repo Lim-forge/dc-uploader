@@ -735,16 +735,7 @@ async function sbFetch(baseUrl, key, path, method='GET', body=null) {
 
 // 파싱
 function shortenSayu(raw){
-  const t=raw.replace(/\s+/g,' ').trim();
-  if(t.includes('타업체')&&t.includes('가격 맞춰')) return '타업체 경쟁가 대응';
-  if(t.includes('타업체')&&t.includes('견적'))       return '타업체 견적 경쟁';
-  if(t.includes('주거래')||t.includes('주 거래'))    return '주거래처 관계 유지';
-  if(t.includes('연구비')||t.includes('예산'))       return '고객 예산 제한';
-  if(t.includes('재고')&&t.includes('소진'))         return '재고 소진 목적';
-  if(t.includes('단종'))                             return '단종 예정 재고';
-  if(t.includes('프로모션')||t.includes('행사'))     return '프로모션 가격 적용';
-  if(t.includes('대량')||t.includes('묶음'))         return '대량 구매 할인';
-  return t;
+  return raw.replace(/\s+/g,' ').trim();
 }
 
 function parseLowPdf(text){
