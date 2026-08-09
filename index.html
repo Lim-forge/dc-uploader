@@ -40,16 +40,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   border:1.5px solid var(--gold);box-shadow:0 0 0 2px rgba(245,200,66,0.15),0 0 10px rgba(245,200,66,0.2);flex-shrink:0;}
 /* ── 메인 탭 (10%미만 / 반품) ── */
 .wrap{width:100%;padding:20px 40px 80px;}
-.main-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--surface);
-  border:1px solid var(--border);border-radius:12px;padding:4px;}
-.main-tab{flex:1;padding:10px;border:none;border-radius:9px;font-size:13px;font-weight:600;
-  cursor:pointer;font-family:var(--font);color:var(--text-muted);background:transparent;transition:all 0.18s;}
-.main-tab.active{
-  background:linear-gradient(135deg,var(--accent),#4060e0);
-  color:#fff;
-  box-shadow:0 4px 16px rgba(91,140,255,0.35);
+.main-tabs{display:flex;gap:12px;margin-bottom:24px;}
+.main-tab{
+  flex:1;padding:16px 20px;border:1px solid var(--border2);border-radius:14px;
+  font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);
+  color:var(--text-muted);background:var(--surface);transition:all 0.2s;
+  display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+  position:relative;overflow:hidden;
 }
-.main-tab:hover:not(.active){color:var(--text-sub);}
+.main-tab::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,var(--accent),#4060e0);
+  opacity:0;transition:opacity 0.2s;
+}
+.main-tab.active{
+  border-color:var(--accent);color:#fff;
+  box-shadow:0 4px 20px rgba(91,140,255,0.3);
+}
+.main-tab.active::before{opacity:1;}
+.main-tab:hover:not(.active){border-color:var(--border2);color:var(--text-sub);background:var(--surface2);}
+.main-tab .tab-icon{font-size:22px;position:relative;z-index:1;}
+.main-tab .tab-label{font-size:13px;font-weight:700;position:relative;z-index:1;}
+.main-tab .tab-badge{
+  font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;
+  background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);
+  position:relative;z-index:1;
+}
+.main-tab:not(.active) .tab-badge{background:var(--accent-dim);color:var(--accent);}
 
 /* ── 서브 탭 (업로드 / 히스토리) ── */
 .sub-tabs{display:flex;gap:8px;margin-bottom:20px;}
@@ -184,6 +201,29 @@ select.filter-input{cursor:pointer;}
   border-top-color:var(--accent);border-radius:50%;animation:spin 0.65s linear infinite;
   vertical-align:middle;margin-right:5px;}
 .loading-row td{text-align:center;padding:32px;color:var(--text-muted);}
+
+  /* ── 수기입력 폼 ── */
+  .manual-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;}
+  .manual-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+  .mf-wide{grid-column:span 2;}
+  .mf-group{display:flex;flex-direction:column;gap:5px;}
+  .mf-group label{font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.06em;}
+  .mf-group input{background:var(--bg);border:1px solid var(--border2);border-radius:8px;
+    padding:9px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color 0.15s;}
+  .mf-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+  .manual-actions{display:flex;gap:10px;justify-content:flex-end;}
+
+  /* ── 하단 상태바 ── */
+  .status-bar{
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--surface);border-top:1px solid var(--border);
+    padding:8px 40px;display:flex;align-items:center;gap:12px;
+    font-size:12px;color:var(--text-muted);z-index:50;
+  }
+  .sb-item{color:var(--text-sub);}
+  .sb-item.success{color:var(--success);}
+  .sb-item.error{color:var(--danger);}
+  .sb-sep{color:var(--border2);}
 </style>
 </head>
 <body>
@@ -199,14 +239,23 @@ select.filter-input{cursor:pointer;}
 <div class="wrap">
   <!-- 메인 탭 -->
   <div class="main-tabs">
-    <button class="main-tab active" onclick="switchMain('low')">📉 10% 미만 출고건</button>
-    <button class="main-tab" onclick="switchMain('return')">↩️ 반품처리건</button>
+    <button class="main-tab active" onclick="switchMain('low')">
+      <span class="tab-icon">📉</span>
+      <span class="tab-label">10% 미만 출고건</span>
+      <span class="tab-badge" id="low-tab-badge">0건</span>
+    </button>
+    <button class="main-tab" onclick="switchMain('return')">
+      <span class="tab-icon">↩️</span>
+      <span class="tab-label">반품처리건</span>
+      <span class="tab-badge" id="ret-tab-badge">0건</span>
+    </button>
   </div>
 
   <!-- ══════════════ 10% 미만 출고건 ══════════════ -->
   <div id="panel-low" class="tab-panel active">
     <div class="sub-tabs">
-      <button class="sub-tab active" onclick="switchSub('low','upload')">📤 업로드</button>
+      <button class="sub-tab active" onclick="switchSub('low','upload')">📤 PDF 업로드</button>
+      <button class="sub-tab" onclick="switchSub('low','manual')">✏️ 수기입력</button>
       <button class="sub-tab" onclick="switchSub('low','history')">📋 히스토리</button>
     </div>
 
@@ -240,6 +289,30 @@ select.filter-input{cursor:pointer;}
           <button class="btn btn-primary" id="low-upload-btn" onclick="uploadLow()" disabled>📤 이슈모니터 업로드</button>
         </div>
         <div class="action-result" id="low-result"></div>
+      </div>
+    </div>
+
+    <!-- 수기입력 탭 -->
+    <div id="low-manual" class="tab-panel">
+      <div class="manual-form">
+        <div class="manual-grid">
+          <div class="mf-group"><label>출고일 *</label><input type="date" id="lm-ship_date"></div>
+          <div class="mf-group"><label>거래처</label><input type="text" id="lm-customer_name" placeholder="서울대/유방내분비외과/김수진"></div>
+          <div class="mf-group"><label>담당자</label><input type="text" id="lm-rep" placeholder="안상수"></div>
+          <div class="mf-group"><label>카달로그번호</label><input type="text" id="lm-catalog_no" placeholder="S2807-100mg"></div>
+          <div class="mf-group mf-wide"><label>품명</label><input type="text" id="lm-item_name" placeholder="Dabrafenib (GSK2118436), 100mg"></div>
+          <div class="mf-group"><label>브랜드</label><input type="text" id="lm-brand" placeholder="sellekchem"></div>
+          <div class="mf-group"><label>입고가</label><input type="number" id="lm-cost_price" placeholder="2570000"></div>
+          <div class="mf-group"><label>출고가</label><input type="number" id="lm-sale_price" placeholder="2810000"></div>
+          <div class="mf-group"><label>마진율 (%)</label><input type="number" step="0.1" id="lm-margin_rate" placeholder="8.5"></div>
+          <div class="mf-group mf-wide"><label>사유</label><input type="text" id="lm-reason" placeholder="타업체 경쟁가 대응"></div>
+        </div>
+        <div class="manual-actions">
+          <button class="btn btn-ghost" onclick="clearLowManual()">초기화</button>
+          <button class="btn btn-success" onclick="saveLowManual()">💾 저장</button>
+          <button class="btn btn-primary" onclick="uploadLowManual()">📤 이슈모니터 업로드</button>
+        </div>
+        <div class="action-result" id="lm-result"></div>
       </div>
     </div>
 
@@ -294,7 +367,8 @@ select.filter-input{cursor:pointer;}
   <!-- ══════════════ 반품처리건 ══════════════ -->
   <div id="panel-return" class="tab-panel">
     <div class="sub-tabs">
-      <button class="sub-tab active" onclick="switchSub('return','upload')">📤 업로드</button>
+      <button class="sub-tab active" onclick="switchSub('return','upload')">📤 PDF 업로드</button>
+      <button class="sub-tab" onclick="switchSub('return','manual')">✏️ 수기입력</button>
       <button class="sub-tab" onclick="switchSub('return','history')">📋 히스토리</button>
     </div>
 
@@ -328,6 +402,31 @@ select.filter-input{cursor:pointer;}
           <button class="btn btn-primary" id="ret-upload-btn" onclick="uploadRet()" disabled>📤 이슈모니터 업로드</button>
         </div>
         <div class="action-result" id="ret-result"></div>
+      </div>
+    </div>
+
+    <!-- 수기입력 탭 -->
+    <div id="return-manual" class="tab-panel">
+      <div class="manual-form">
+        <div class="manual-grid">
+          <div class="mf-group"><label>반품일 *</label><input type="date" id="rm-return_date"></div>
+          <div class="mf-group"><label>담당자</label><input type="text" id="rm-rep" placeholder="오범석"></div>
+          <div class="mf-group"><label>코드</label><input type="text" id="rm-code" placeholder="FG-I017-007-XS"></div>
+          <div class="mf-group mf-wide"><label>품명</label><input type="text" id="rm-item_name" placeholder="VoneTex AMG Nitrile Glove XS(100pcs)"></div>
+          <div class="mf-group"><label>수량</label><input type="number" id="rm-qty" placeholder="10"></div>
+          <div class="mf-group"><label>매입처</label><input type="text" id="rm-supplier" placeholder="재고사용"></div>
+          <div class="mf-group"><label>수주처</label><input type="text" id="rm-customer_name" placeholder="삼성서울병원/구매과"></div>
+          <div class="mf-group"><label>단가</label><input type="number" id="rm-unit_price" placeholder="57000"></div>
+          <div class="mf-group"><label>합계</label><input type="number" id="rm-total" placeholder="570000"></div>
+          <div class="mf-group mf-wide"><label>사유</label><input type="text" id="rm-reason" placeholder="나이트릴→라텍스 교환 요청"></div>
+          <div class="mf-group"><label>처리내용</label><input type="text" id="rm-process" value="반품" placeholder="반품"></div>
+        </div>
+        <div class="manual-actions">
+          <button class="btn btn-ghost" onclick="clearRetManual()">초기화</button>
+          <button class="btn btn-success" onclick="saveRetManual()">💾 저장</button>
+          <button class="btn btn-primary" onclick="uploadRetManual()">📤 이슈모니터 업로드</button>
+        </div>
+        <div class="action-result" id="rm-result"></div>
       </div>
     </div>
 
@@ -380,6 +479,15 @@ select.filter-input{cursor:pointer;}
   </div>
 </div>
 
+<!-- 하단 상태바 -->
+<div class="status-bar" id="statusBar">
+  <span class="sb-item" id="sb-upload-status">💾 준비됨</span>
+  <span class="sb-sep">·</span>
+  <span class="sb-item" id="sb-data-status">📋 데이터 없음</span>
+  <span class="sb-sep">·</span>
+  <span class="sb-item" id="sb-time">–</span>
+</div>
+
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -406,12 +514,13 @@ function switchMain(tab) {
 }
 function switchSub(main, sub) {
   const panels = main==='low'
-    ? [{id:'low-upload',k:'upload'},{id:'low-history',k:'history'}]
-    : [{id:'return-upload',k:'upload'},{id:'return-history',k:'history'}];
-  panels.forEach(p => document.getElementById(p.id).classList.toggle('active', p.k===sub));
+    ? [{id:'low-upload',k:'upload'},{id:'low-manual',k:'manual'},{id:'low-history',k:'history'}]
+    : [{id:'return-upload',k:'upload'},{id:'return-manual',k:'manual'},{id:'return-history',k:'history'}];
+  panels.forEach(p => document.getElementById(p.id)?.classList.toggle('active', p.k===sub));
   const parentPanel = document.getElementById('panel-'+main);
   parentPanel.querySelectorAll('.sub-tab').forEach((el,i) => {
-    el.classList.toggle('active', (i===0&&sub==='upload')||(i===1&&sub==='history'));
+    el.classList.toggle('active',
+      (i===0&&sub==='upload')||(i===1&&sub==='manual')||(i===2&&sub==='history'));
   });
   if(sub==='history') {
     if(main==='low') { initYears('low-h-year'); loadLowHistory(); }
@@ -560,6 +669,7 @@ function rebuildLow(){
   lowRows.sort((a,b)=>new Date(a.ship_date)-new Date(b.ship_date));
   const preview=document.getElementById('low-preview');
   document.getElementById('low-count').textContent=`${lowRows.length}행`;
+  updateTabBadge('low', lowRows.length);
   if(!lowRows.length){preview.style.display='none';return;}
   preview.style.display='block';
   document.getElementById('low-tbody').innerHTML=lowRows.map((r,i)=>`
@@ -722,6 +832,7 @@ function rebuildRet(){
   retRows.sort((a,b)=>new Date(a.return_date)-new Date(b.return_date));
   const preview=document.getElementById('ret-preview');
   document.getElementById('ret-count').textContent=`${retRows.length}행`;
+  updateTabBadge('ret', retRows.length);
   if(!retRows.length){preview.style.display='none';return;}
   preview.style.display='block';
   document.getElementById('ret-tbody').innerHTML=retRows.map((r,i)=>`
@@ -884,6 +995,117 @@ function removeQueueItem(queueId,id){
 
 // 초기화
 initYears('low-h-year');
+
+// ── 탭 배지 카운트 ─────────────────────────────────
+function updateTabBadge(tab, count) {
+  const el = document.getElementById(tab+'-tab-badge');
+  if(el) el.textContent = count+'건';
+}
+
+// ── 상태바 업데이트 ───────────────────────────────
+function setStatus(uploadMsg, dataMsg, cls='') {
+  const u = document.getElementById('sb-upload-status');
+  const d = document.getElementById('sb-data-status');
+  const t = document.getElementById('sb-time');
+  if(u){ u.textContent = uploadMsg; u.className = 'sb-item '+(cls||''); }
+  if(d && dataMsg) { d.textContent = dataMsg; }
+  if(t) t.textContent = new Date().toLocaleTimeString('ko-KR');
+}
+
+// ── 10% 미만 수기입력 ─────────────────────────────
+function getLowManualRow() {
+  return {
+    ship_date:     document.getElementById('lm-ship_date').value || null,
+    customer_name: document.getElementById('lm-customer_name').value.trim() || null,
+    rep:           document.getElementById('lm-rep').value.trim() || null,
+    catalog_no:    document.getElementById('lm-catalog_no').value.trim() || null,
+    item_name:     document.getElementById('lm-item_name').value.trim() || null,
+    brand:         document.getElementById('lm-brand').value.trim() || null,
+    cost_price:    parseFloat(document.getElementById('lm-cost_price').value) || null,
+    sale_price:    parseFloat(document.getElementById('lm-sale_price').value) || null,
+    margin_rate:   parseFloat(document.getElementById('lm-margin_rate').value) || null,
+    reason:        document.getElementById('lm-reason').value.trim() || null,
+    doc_no:        null,
+  };
+}
+function clearLowManual(){
+  ['lm-ship_date','lm-customer_name','lm-rep','lm-catalog_no','lm-item_name',
+   'lm-brand','lm-cost_price','lm-sale_price','lm-margin_rate','lm-reason']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('lm-result').textContent = '';
+}
+async function saveLowManual(){
+  const row = getLowManualRow();
+  if(!row.ship_date){ alert('출고일은 필수입니다.'); return; }
+  const res = document.getElementById('lm-result');
+  res.textContent = ''; res.className = 'action-result';
+  try{
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/low_margin_shipments', 'POST', [row]);
+    if(resp.ok||resp.status===201){ res.innerHTML='✅ 저장 완료!'; res.className='action-result success'; setStatus('💾 수기입력 저장됨','',  'success'); }
+    else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
+  }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
+}
+async function uploadLowManual(){
+  const row = getLowManualRow();
+  if(!row.ship_date){ alert('출고일은 필수입니다.'); return; }
+  const res = document.getElementById('lm-result');
+  res.textContent = ''; res.className = 'action-result';
+  try{
+    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/low_margin_shipments', 'POST', [row]);
+    if(resp.ok||resp.status===201){ res.innerHTML='✅ 이슈모니터 업로드 완료!'; res.className='action-result success'; setStatus('📤 이슈모니터 업로드됨','','success'); }
+    else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
+  }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
+}
+
+// ── 반품 수기입력 ─────────────────────────────────
+function getRetManualRow() {
+  const qty = parseFloat(document.getElementById('rm-qty').value) || null;
+  const unit_price = parseFloat(document.getElementById('rm-unit_price').value) || null;
+  return {
+    return_date:   document.getElementById('rm-return_date').value || null,
+    rep:           document.getElementById('rm-rep').value.trim() || null,
+    code:          document.getElementById('rm-code').value.trim() || null,
+    item_name:     document.getElementById('rm-item_name').value.trim() || null,
+    qty,
+    supplier:      document.getElementById('rm-supplier').value.trim() || null,
+    customer_name: document.getElementById('rm-customer_name').value.trim() || null,
+    unit_price,
+    total:         document.getElementById('rm-total').value ? parseFloat(document.getElementById('rm-total').value) : (qty&&unit_price?qty*unit_price:null),
+    reason:        document.getElementById('rm-reason').value.trim() || null,
+    process:       document.getElementById('rm-process').value.trim() || '반품',
+    doc_no:        null,
+  };
+}
+function clearRetManual(){
+  ['rm-return_date','rm-rep','rm-code','rm-item_name','rm-qty','rm-supplier',
+   'rm-customer_name','rm-unit_price','rm-total','rm-reason']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('rm-process').value = '반품';
+  document.getElementById('rm-result').textContent = '';
+}
+async function saveRetManual(){
+  const row = getRetManualRow();
+  if(!row.return_date){ alert('반품일은 필수입니다.'); return; }
+  const res = document.getElementById('rm-result');
+  res.textContent = ''; res.className = 'action-result';
+  try{
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/return_shipments', 'POST', [row]);
+    if(resp.ok||resp.status===201){ res.innerHTML='✅ 저장 완료!'; res.className='action-result success'; setStatus('💾 수기입력 저장됨','','success'); }
+    else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
+  }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
+}
+async function uploadRetManual(){
+  const row = getRetManualRow();
+  if(!row.return_date){ alert('반품일은 필수입니다.'); return; }
+  const res = document.getElementById('rm-result');
+  res.textContent = ''; res.className = 'action-result';
+  try{
+    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/return_shipments', 'POST', [row]);
+    if(resp.ok||resp.status===201){ res.innerHTML='✅ 이슈모니터 업로드 완료!'; res.className='action-result success'; setStatus('📤 이슈모니터 업로드됨','','success'); }
+    else{ const e=await resp.json().catch(()=>({})); throw new Error(e.message||`HTTP ${resp.status}`); }
+  }catch(e){ res.textContent='❌ '+e.message; res.className='action-result error'; }
+}
+
 </script>
 </body>
 </html>
