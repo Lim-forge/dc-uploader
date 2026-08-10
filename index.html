@@ -851,7 +851,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
           <span id="ord-count" style="background:rgba(74,127,193,0.15);color:var(--accent);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;">0건</span>
           <button class="btn btn-ghost" onclick="resetOrd()" style="margin-left:auto;padding:5px 14px;font-size:12px;">↺ 초기화</button>
           <button class="btn btn-success" id="ord-save-btn" onclick="saveOrd()" style="padding:5px 14px;font-size:12px;" disabled>💾 저장</button>
-          <button class="btn btn-primary" id="ord-upload-btn" onclick="uploadOrd()" style="padding:5px 14px;font-size:12px;" disabled>☁ 업로드</button>
+          <button class="btn btn-primary" id="ord-copy-all-btn" onclick="copyAllOrdLinks()" style="padding:5px 14px;font-size:12px;display:none;">📋 전체 링크 복사</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -2315,12 +2315,16 @@ function ordFmtPct(v) {
   return (v == null || isNaN(v)) ? '—' : v.toFixed(1) + '%';
 }
 function ordFmtDate(v) {
-  if (!v) return '—';
+  if (!v) return null;
   if (typeof v === 'number') {
     const d = new Date(Math.round((v - 25569) * 86400 * 1000));
     return d.toISOString().slice(0, 10);
   }
-  return String(v).slice(0, 10) || '—';
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  const s = String(v).trim();
+  if (/^\d{2}-\d{2}-\d{2}$/.test(s)) return '20' + s;      // 26-07-01 → 2026-07-01
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10); // YYYY-MM-DD
+  return null;
 }
 function ordMgStyle(v) {
   if (v < 0)  return 'color:#ff6b6b;font-weight:900;';
@@ -2370,14 +2374,29 @@ function ordParseAndRender(file) {
         po_vendor:     map.po_vendor     != null ? (r[map.po_vendor]     || '') : '',
         po_price:      pp,
         margin_rate:   mg,
-        etc:           map.etc           != null ? (r[map.etc]           || '') : '',
+        etc:           '',  // 사유는 영업사원이 직접 입력 (링크로 배포)
       };
     });
 
-    const totalCnt = all.length;
-    const lowRows  = all.filter(r => r.margin_rate != null && r.margin_rate < 10);
+    // ── 필터링 ──
+    const EXCL_ORDERER  = ['이은정','임영재','서재란','이나연','김정대'];
+    const EXCL_CHANNEL  = ['업자','대리점'];
+    const EXCL_KEYWORD  = ['폐기','취소','반품'];
+
+    const lowRows = all.filter(r => {
+      if (r.margin_rate == null || r.margin_rate >= 10) return false;
+      // 수주자 제외
+      if (EXCL_ORDERER.some(n => (r.orderer||'').includes(n))) return false;
+      // 수주처 채널 제외 (업자·대리점)
+      if (EXCL_CHANNEL.some(c => (r.customer_name||'').includes(c))) return false;
+      // 품명·사유 키워드 제외
+      const txt = (r.item_name||'') + '|' + (r.etc||'');
+      if (EXCL_KEYWORD.some(k => txt.includes(k))) return false;
+      return true;
+    });
 
     // KPI
+    const totalCnt = all.length;
     document.getElementById('ord-kv-total').textContent = totalCnt.toLocaleString() + '건';
     document.getElementById('ord-kv-low').textContent   = lowRows.length.toLocaleString() + '건';
     const _badge = document.getElementById('ord-tab-badge'); if(_badge) _badge.textContent = lowRows.length + '건';
@@ -2497,20 +2516,78 @@ async function saveOrd() {
       item_name: r.item_name, order_qty: r.order_qty || null,
       maker: r.maker, po_vendor: r.po_vendor,
       po_price: r.po_price || null, margin_rate: r.margin_rate || null,
-      reason: r.etc || null
+      reason: null  // 사유는 링크로 영업사원이 직접 입력
     }));
     const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders`, {
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':ORD_SUPA_KEY,
+        'Authorization':'Bearer '+ORD_SUPA_KEY,
+        'Prefer':'return=representation'  // 저장된 row id 반환
+      },
       body: JSON.stringify(payload)
     });
     if(!res.ok) throw new Error(await res.text());
-    showToast(`✅ ${payload.length}건 저장 완료`,'success');
+    const saved = await res.json();
+    window._savedOrdRows = saved;
+    showToast(`✅ ${saved.length}건 저장 완료 — 링크를 복사하여 배포하세요`,'success');
     btn.textContent = '✔ 저장됨';
+    renderOrdLinks(saved);
   } catch(e) {
     showToast('저장 오류: '+e.message,'error');
     btn.disabled = false; btn.textContent = '💾 저장';
   }
+}
+
+function renderOrdLinks(savedRows) {
+  const base = window.location.origin + window.location.pathname;
+  // 저장된 rows를 파싱된 lowRows와 순서 매칭
+  const tbody = document.getElementById('ord-tbody');
+  if(!tbody) return;
+  const trs = tbody.querySelectorAll('tr:not([data-group])');
+  let dataIdx = 0;
+  tbody.querySelectorAll('tr').forEach(tr => {
+    if(tr.dataset.group) return;
+    const row = savedRows[dataIdx];
+    if(!row) return;
+    // 링크 셀이 없으면 추가
+    if(!tr.querySelector('.ord-link-cell')) {
+      const td = document.createElement('td');
+      td.className = 'ord-link-cell';
+      const link = `${base}?reason=${row.id}`;
+      td.innerHTML = `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;"
+        onclick="copyOrdLink('${link}','${(row.orderer||'')}','${(row.customer_name||'').replace(/'/g,'')}')">🔗 복사</button>`;
+      tr.appendChild(td);
+    }
+    dataIdx++;
+  });
+
+  // 전체 링크 복사 버튼 표시
+  const allLinks = savedRows.map(r => {
+    const link = `${base}?reason=${r.id}`;
+    return `[${r.orderer||''}] ${r.customer_name||''} / ${r.item_name||''}\n${link}`;
+  }).join('\n\n');
+
+  const copyAllBtn = document.getElementById('ord-copy-all-btn');
+  if(copyAllBtn) {
+    copyAllBtn.style.display = '';
+    copyAllBtn._links = allLinks;
+  }
+}
+
+function copyOrdLink(link, orderer, customer) {
+  navigator.clipboard.writeText(link).then(() => {
+    showToast(`🔗 ${orderer} / ${customer} 링크 복사됨`,'success');
+  });
+}
+
+function copyAllOrdLinks() {
+  const btn = document.getElementById('ord-copy-all-btn');
+  if(!btn || !btn._links) return;
+  navigator.clipboard.writeText(btn._links).then(() => {
+    showToast(`📋 전체 링크 복사됨 — 메일에 붙여넣으세요`,'success');
+  });
 }
 
 async function uploadOrd() {
@@ -2575,5 +2652,80 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
 
 </script>
 <div id="toast-container"></div>
+<!-- ══ 사유 입력 모달 (URL ?reason={id} 접속 시) ══ -->
+<div id="reason-modal" style="display:none;position:fixed;inset:0;background:rgba(30,50,80,0.55);z-index:9999;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;width:min(520px,95vw);box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="font-size:18px;font-weight:800;color:#1a2a3a;margin-bottom:6px;">📝 사유 입력</div>
+    <div id="reason-modal-info" style="font-size:13px;color:#4a6a8a;margin-bottom:20px;padding:12px 16px;background:#f0f5fb;border-radius:10px;line-height:1.7;"></div>
+    <textarea id="reason-input" placeholder="사유를 입력해주세요..." rows="5"
+      style="width:100%;border:1.5px solid #d0dcea;border-radius:12px;padding:12px 14px;font-size:14px;font-family:inherit;resize:vertical;outline:none;"></textarea>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+      <button onclick="closeReasonModal()" style="padding:10px 22px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">닫기</button>
+      <button onclick="submitReason()" id="reason-submit-btn"
+        style="padding:10px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
+    </div>
+    <div id="reason-done" style="display:none;margin-top:14px;text-align:center;color:#2e9e6e;font-weight:700;font-size:14px;">✅ 저장 완료! 창을 닫으셔도 됩니다.</div>
+  </div>
+</div>
+
+<script>
+// ── URL ?reason={id} 처리 ──
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const rid = params.get('reason');
+  if(!rid) return;
+  // 모달 표시
+  const modal = document.getElementById('reason-modal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  // Supabase에서 해당 row 조회
+  fetch(`https://fhlowhfqgmjnmzgvmjsi.supabase.co/rest/v1/orders?id=eq.${rid}&select=*`, {
+    headers:{
+      'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps',
+      'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps'
+    }
+  }).then(r=>r.json()).then(rows=>{
+    if(!rows||!rows.length){ document.getElementById('reason-modal-info').textContent='해당 수주건을 찾을 수 없습니다.'; return; }
+    const row = rows[0];
+    window._reason_id = rid;
+    document.getElementById('reason-modal-info').innerHTML =
+      `<b>수주자:</b> ${row.orderer||'—'} &nbsp;|&nbsp; <b>수주처:</b> ${row.customer_name||'—'}<br>
+       <b>품명:</b> ${row.item_name||'—'} &nbsp;|&nbsp; <b>마진율:</b> ${row.margin_rate!=null?row.margin_rate.toFixed(1)+'%':'—'}<br>
+       <b>수주일:</b> ${row.order_date||'—'}`;
+    if(row.reason) document.getElementById('reason-input').value = row.reason;
+  }).catch(e=>{ document.getElementById('reason-modal-info').textContent='오류: '+e.message; });
+})();
+
+function closeReasonModal(){
+  const m=document.getElementById('reason-modal'); if(m) m.style.display='none';
+  document.body.style.overflow='';
+}
+
+async function submitReason(){
+  const rid = window._reason_id; if(!rid) return;
+  const reason = (document.getElementById('reason-input').value||'').trim();
+  if(!reason){ alert('사유를 입력해주세요.'); return; }
+  const btn = document.getElementById('reason-submit-btn');
+  btn.disabled=true; btn.textContent='저장 중...';
+  try {
+    const res = await fetch(`https://fhlowhfqgmjnmzgvmjsi.supabase.co/rest/v1/orders?id=eq.${rid}`, {
+      method:'PATCH',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps',
+        'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps',
+        'Prefer':'return=minimal'
+      },
+      body: JSON.stringify({reason})
+    });
+    if(!res.ok) throw new Error(await res.text());
+    btn.textContent='✔ 저장됨';
+    document.getElementById('reason-done').style.display='block';
+  } catch(e){
+    alert('오류: '+e.message);
+    btn.disabled=false; btn.textContent='저장';
+  }
+}
+</script>
 </body>
 </html>
