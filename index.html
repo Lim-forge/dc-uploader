@@ -906,18 +906,20 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="width:62px">수주자</th><th style="width:80px">수주일</th><th>수주처</th><th style="width:90px">품명코드</th>
-            <th>품명</th><th style="text-align:right;width:40px">수주량</th>
-            <th style="width:140px">제조업체</th><th style="width:140px">발주처</th><th style="text-align:right;width:78px">발주단가</th>
-            <th style="text-align:right;width:50px">마진율</th>
-            <th style="min-width:220px;">
+            <th style="width:60px">수주자</th><th style="width:78px">수주일</th>
+            <th style="min-width:160px">수주처</th><th style="width:88px">품명코드</th>
+            <th style="min-width:200px">품명</th><th style="text-align:right;width:38px">수주량</th>
+            <th style="width:100px">제조업체</th><th style="width:130px">발주처</th>
+            <th style="text-align:right;width:85px">발주단가</th>
+            <th style="text-align:right;width:48px">마진율</th>
+            <th style="min-width:240px;">
               사유
               <button onclick="saveAllOrdHistoryReasons()"
                 style="margin-left:8px;padding:2px 10px;font-size:10px;border-radius:5px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;cursor:pointer;font-weight:700;vertical-align:middle;">
                 📋 전체 저장
               </button>
             </th>
-            <th style="width:70px">저장일</th><th style="width:70px">확인날짜</th>
+            <th style="width:68px">저장일</th><th style="width:68px">확인날짜</th>
           </tr></thead>
           <tbody id="ord-h-tbody"></tbody>
         </table>
@@ -2689,9 +2691,12 @@ async function loadOrdHistory() {
     const dedupeMap = new Map();
     validRows.forEach(r => {
       const key = `${r.orderer}|${r.order_date}|${r.item_code}`;
-      if(!dedupeMap.has(key) || (r.reason && !dedupeMap.get(key).reason)) {
-        dedupeMap.set(key, r);
-      }
+      const prev = dedupeMap.get(key);
+      if(!prev) { dedupeMap.set(key, r); return; }
+      const rBetter = (r.reason && !prev.reason)
+        || (!prev.reason && r.item_name !== r.item_code && prev.item_name === prev.item_code)
+        || (r.created_at > (prev.created_at||''));
+      if(rBetter) dedupeMap.set(key, r);
     });
     const dedupedRows = [...dedupeMap.values()];
 

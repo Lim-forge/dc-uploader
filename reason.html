@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Apple SD Gothic Neo',Arial,sans-serif;background:linear-gradient(135deg,#e8f0fa 0%,#d4e6f4 50%,#c8d8ea 100%);min-height:100vh;padding:20px 16px 60px;}
-.card{background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(40,80,140,.13);max-width:860px;margin:0 auto;}
+.card{background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(40,80,140,.13);max-width:1200px;margin:0 auto;}
 .header{padding:24px 28px 20px;border-bottom:1px solid #e8f0f8;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
 .header-logo{width:38px;height:38px;background:linear-gradient(135deg,#4a7fc1,#3a65a8);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;flex-shrink:0;}
 .header-info{}
@@ -134,11 +134,14 @@ async function loadData() {
     const dedupeMap = new Map();
     rows.forEach(r => {
       const key = `${r.order_date}|${r.item_code}`;
-      if(!dedupeMap.has(key) || (r.reason && !dedupeMap.get(key).reason)) {
-        dedupeMap.set(key, r);
-      }
+      const prev = dedupeMap.get(key);
+      if(!prev) { dedupeMap.set(key, r); return; }
+      // 우선순위: ① 사유 있는 것 ② 품명이 다른 것(정상 데이터) ③ 최신 created_at
+      const rBetter = (r.reason && !prev.reason)
+        || (!prev.reason && r.item_name !== r.item_code && prev.item_name === prev.item_code)
+        || (r.created_at > (prev.created_at||''));
+      if(rBetter) dedupeMap.set(key, r);
     });
-    // 반올림 후 10% 미만만 표시 (9.5→10 제외, 9.4→9 포함)
     const deduped = [...dedupeMap.values()].filter(r =>
       r.margin_rate != null && Math.round(r.margin_rate) < 10
     );
@@ -160,7 +163,7 @@ function renderTable(rows) {
       <td style="white-space:nowrap;color:#4a6a8a;">${(r.order_date||'').slice(0,10)}</td>
       <td>${r.customer_name||'—'}</td>
       <td style="color:#5a7a9a;font-size:12px;white-space:nowrap;">${r.item_code||'—'}</td>
-      <td style="max-width:200px;">${r.item_name||'—'}</td>
+      <td style="max-width:240px;">${(r.item_name && r.item_name !== r.item_code) ? r.item_name : '—'}</td>
       <td class="mg">${r.margin_rate!=null?Math.round(r.margin_rate)+'%':'—'}</td>
       <td>
         <textarea class="reason-input ${r.reason?'filled':''}"
