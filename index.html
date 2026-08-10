@@ -2036,15 +2036,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 히스토리에서 이슈모니터 업로드
 async function uploadHistoryRow(tab, id) {
-  const isLow  = tab === 'low';
-  const isOrd  = tab === 'order';
-  const tbl    = isLow ? 'low_margin_shipments' : isOrd ? 'orders' : 'return_shipments';
-  const srcURL = isOrd ? ORD_SUPA_URL  : UPLOADER_URL;
-  const srcKEY = isOrd ? ORD_SUPA_KEY  : UPLOADER_KEY;
+  const isLow = tab === 'low';
+  const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
 
   // 업로더 DB에서 해당 행 가져오기
-  const getResp = await fetch(`${srcURL}/rest/v1/${tbl}?id=eq.${id}&select=*`,
-    {headers:{'apikey':srcKEY,'Authorization':`Bearer ${srcKEY}`}});
+  const getResp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}&select=*`,
+    {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
   const rows = await getResp.json();
   if(!rows.length){ alert('데이터를 찾을 수 없습니다.'); return; }
 
@@ -2055,28 +2052,24 @@ async function uploadHistoryRow(tab, id) {
   const uploadResp = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/${tbl}`, 'POST', [row]);
   if(uploadResp.ok || uploadResp.status === 201) {
     // 업로더 DB is_uploaded = true 업데이트
-    await fetch(`${srcURL}/rest/v1/${tbl}?id=eq.${id}`,{
+    await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
       method:'PATCH',
-      headers:{'Content-Type':'application/json','apikey':srcKEY,'Authorization':`Bearer ${srcKEY}`},
+      headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
       body:JSON.stringify({is_uploaded:true})
     });
     setStatus('📤 이슈모니터 업로드 완료!','','success');
     // 히스토리 새로고침
-    if(isLow) loadLowHistory();
-    else if(isOrd) loadOrdHistory();
-    else loadRetHistory();
+    if(isLow) loadLowHistory(); else loadRetHistory();
   } else {
     const e = await uploadResp.json().catch(()=>({}));
     if(e.code==='23505'){
       // 이미 업로드됨 → is_uploaded만 true로
-      await fetch(`${srcURL}/rest/v1/${tbl}?id=eq.${id}`,{
+      await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
         method:'PATCH',
-        headers:{'Content-Type':'application/json','apikey':srcKEY,'Authorization':`Bearer ${srcKEY}`},
+        headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
         body:JSON.stringify({is_uploaded:true})
       });
-      if(isLow) loadLowHistory();
-      else if(isOrd) loadOrdHistory();
-      else loadRetHistory();
+      if(isLow) loadLowHistory(); else loadRetHistory();
     } else {
       alert('❌ 업로드 실패: ' + (e.message||'오류'));
     }
@@ -2896,7 +2889,7 @@ async function loadOrdHistory() {
           <td style="font-size:11px;white-space:nowrap;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}">${r.reason_at?(r.reason_at.slice(0,10)):'미확인'}</td>
           <td style="white-space:nowrap;">${r.is_uploaded
             ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>'
-            : `<button onclick="uploadHistoryRow('order','${r.id}')" style="padding:3px 10px;font-size:11px;border-radius:20px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;cursor:pointer;font-weight:700;white-space:nowrap;">☁ 업로드</button>`
+            : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미업로드</span>'
           }</td>
           <td style="text-align:center;"><button onclick="deleteOrdRow('${r.id}')" title="삭제" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:#c04040;">🗑️</button></td>
         </tr>`;
