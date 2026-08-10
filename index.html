@@ -2316,7 +2316,8 @@ function ordMapHeaders(headers) {
   headers.forEach((h, i) => {
     const t = (h||'').toString().trim();
     for (const [key, aliases] of Object.entries(ORD_COL_MAP)) {
-      if (!(key in map) && aliases.some(a => t.includes(a))) map[key] = i;
+      // 정확히 일치하는 경우만 매핑 (includes 사용 시 '품명코드'가 '품명'으로도 잡히는 버그 방지)
+      if (!(key in map) && aliases.some(a => t === a)) map[key] = i;
     }
   });
   ['order_price','po_price'].forEach(k => { if(!(k in map)) missing.push(ORD_COL_MAP[k][0]); });
@@ -2390,7 +2391,8 @@ function ordParseAndRender(file) {
         po_vendor:     map.po_vendor     != null ? (r[map.po_vendor]     || '') : '',
         po_price:      pp,
         margin_rate:   mg,
-        etc:           '',  // 사유는 영업사원이 직접 입력 (링크로 배포)
+        etc_raw:       map.etc != null ? (String(r[map.etc]||'')) : '', // 필터용만 (저장 안 함)
+        etc:           '',  // 사유는 링크로 영업사원이 직접 입력
       };
     });
 
@@ -2408,8 +2410,8 @@ function ordParseAndRender(file) {
       if (EXCL_CHANNEL.some(c => (r.orderer||'').includes(c))) return false;
       // 수주처 채널 제외
       if (EXCL_CHANNEL.some(c => (r.customer_name||'').includes(c))) return false;
-      // 품명·사유 키워드 제외
-      const txt = (r.item_name||'') + '|' + (r.etc||'');
+      // 품명·참조사항·수주처 키워드 제외
+      const txt = (r.item_name||'') + '|' + (r.etc_raw||'') + '|' + (r.customer_name||'');
       if (EXCL_KEYWORD.some(k => txt.includes(k))) return false;
       return true;
     });
@@ -2678,7 +2680,7 @@ async function loadOrdHistory() {
       if(H_EXCL_ORDERER.some(n=>(r.orderer||'').includes(n))) return false;
       if(H_EXCL_CHANNEL.some(c=>(r.orderer||'').includes(c))) return false;
       if(H_EXCL_CHANNEL.some(c=>(r.customer_name||'').includes(c))) return false;
-      const txt=(r.item_name||'')+'|'+(r.reason||'');
+      const txt=(r.item_name||'')+'|'+(r.customer_name||'');
       if(H_EXCL_KEYWORD.some(k=>txt.includes(k))) return false;
       return true;
     });
@@ -2747,16 +2749,25 @@ async function loadOrdHistory() {
           <td style="text-align:right;white-space:nowrap;font-size:12px">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
           <td style="text-align:right;color:var(--danger);font-weight:700;white-space:nowrap">${mgDisp}</td>
           <td style="min-width:220px;">
-            <div style="display:flex;gap:6px;align-items:center;">
-              <input type="text" value="${(r.reason||'').replace(/"/g,'&quot;')}"
-                placeholder="사유를 입력하세요..."
-                id="ord-h-reason-${r.id}"
-                style="flex:1;border:1.5px solid ${r.reason?'#c8dcea':'#e8c0b0'};border-radius:7px;padding:5px 9px;font-size:12px;font-family:inherit;outline:none;background:${r.reason?'#fff':'#fff8f5'};"
-                onfocus="this.style.borderColor='#4a7fc1'"
-                onblur="this.style.borderColor=this.value?'#2e9e6e':'#e8c0b0'">
-              <button onclick="saveOrdHistoryReason('${r.id}')"
-                style="padding:4px 10px;border-radius:7px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">저장</button>
-            </div>
+            ${r.reason
+              ? `<div style="display:flex;gap:6px;align-items:center;">
+                   <span id="ord-h-reason-text-${r.id}" style="flex:1;color:#1a2a3a;font-size:12.5px;">${r.reason}</span>
+                   <input type="text" id="ord-h-reason-${r.id}" value="${(r.reason||'').replace(/"/g,'&quot;')}"
+                     style="display:none;flex:1;border:1.5px solid #4a7fc1;border-radius:7px;padding:5px 9px;font-size:12px;font-family:inherit;outline:none;">
+                   <button onclick="toggleOrdEdit('${r.id}')" id="ord-h-edit-${r.id}"
+                     style="padding:3px 8px;font-size:11px;border-radius:6px;border:1px solid #d0dcea;background:#fff;cursor:pointer;white-space:nowrap;">✏️ 수정</button>
+                   <button onclick="saveOrdHistoryReason('${r.id}')" id="ord-h-save-${r.id}"
+                     style="display:none;padding:4px 10px;font-size:11px;border-radius:6px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;cursor:pointer;font-weight:700;white-space:nowrap;">저장</button>
+                 </div>`
+              : `<div style="display:flex;gap:6px;align-items:center;">
+                   <input type="text" id="ord-h-reason-${r.id}" value=""
+                     placeholder="사유를 입력하세요..."
+                     style="flex:1;border:1.5px solid #e8c0b0;border-radius:7px;padding:5px 9px;font-size:12px;font-family:inherit;outline:none;background:#fff8f5;"
+                     onfocus="this.style.borderColor='#4a7fc1'" onblur="this.style.borderColor=this.value?'#2e9e6e':'#e8c0b0'">
+                   <button onclick="saveOrdHistoryReason('${r.id}')"
+                     style="padding:4px 10px;font-size:11px;border-radius:6px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;cursor:pointer;font-weight:700;white-space:nowrap;">저장</button>
+                 </div>`
+            }
           </td>
           <td style="font-size:11px;color:var(--text-muted);white-space:nowrap">${(r.created_at||'').slice(0,10)}</td>
           <td style="font-size:11px;white-space:nowrap;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}">${r.reason_at?(r.reason_at.slice(0,10)):'미확인'}</td>
@@ -2790,6 +2801,28 @@ async function saveAllOrdHistoryReasons() {
     showToast(`✅ ${done}건 일괄 저장 완료`,'success');
     setTimeout(()=>loadOrdHistory(), 600);
   } catch(e){ showToast('오류: '+e.message,'error'); }
+}
+
+function toggleOrdEdit(id) {
+  const text  = document.getElementById('ord-h-reason-text-'+id);
+  const input = document.getElementById('ord-h-reason-'+id);
+  const editBtn = document.getElementById('ord-h-edit-'+id);
+  const saveBtn = document.getElementById('ord-h-save-'+id);
+  const isEditing = input.style.display !== 'none';
+  if(isEditing) {
+    // 취소 → 원래 텍스트로
+    input.style.display = 'none';
+    text.style.display  = '';
+    saveBtn.style.display = 'none';
+    editBtn.textContent = '✏️ 수정';
+  } else {
+    // 수정 모드
+    input.style.display = 'flex';
+    text.style.display  = 'none';
+    saveBtn.style.display = '';
+    input.focus();
+    editBtn.textContent = '✕ 취소';
+  }
 }
 
 async function saveOrdHistoryReason(id) {
