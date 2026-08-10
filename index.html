@@ -1133,6 +1133,7 @@ function goBack() {
     const el = document.getElementById('panel-'+t);
     if(el) el.classList.remove('active');
   });
+  try { sessionStorage.removeItem('lastTab'); } catch(e){}
 }
 function switchSub(main, sub) {
   const subMap = {
@@ -2714,6 +2715,8 @@ async function bulkUploadOrd() {
       info.innerHTML = `✅ <strong>${rows.length}건</strong> 이슈모니터 업로드 완료!`;
       info.style.color = 'var(--success)';
       btn.style.display = 'none';
+      bar._data = [];
+      bar._ids  = [];
 
       setTimeout(() => loadOrdHistory(), 1000);
     } else {
