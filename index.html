@@ -857,9 +857,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
           <table>
             <thead><tr>
               <th>수주자</th><th>수주일</th><th>수주처</th><th>품명코드</th>
-              <th>품명</th><th style="text-align:right">수주량</th><th style="text-align:right">수주단가</th>
+              <th>품명</th><th style="text-align:right">수주량</th>
               <th>제조업체</th><th>발주처</th><th style="text-align:right">발주단가</th>
-              <th style="text-align:right">마진율</th><th>기타</th>
+              <th style="text-align:right">마진율</th><th>사유</th>
             </tr></thead>
             <tbody id="ord-tbody"></tbody>
           </table>
@@ -908,9 +908,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <table>
           <thead><tr>
             <th>수주자</th><th>수주일</th><th>수주처</th><th>품명코드</th>
-            <th>품명</th><th style="text-align:right">수주량</th><th style="text-align:right">수주단가</th>
+            <th>품명</th><th style="text-align:right">수주량</th>
             <th>제조업체</th><th>발주처</th><th style="text-align:right">발주단가</th>
-            <th style="text-align:right">마진율</th><th>기타</th><th>저장일</th><th>업로드</th>
+            <th style="text-align:right">마진율</th><th>사유</th><th>저장일</th><th>업로드</th>
           </tr></thead>
           <tbody id="ord-h-tbody"></tbody>
         </table>
@@ -2292,7 +2292,7 @@ const ORD_COL_MAP = {
   po_vendor:     ['발주처','구매처','매입처','공급처'],
   po_price:      ['발주단가','매입단가','구매단가','원가'],
   margin_rate:   ['마진율','마진','margin'],
-  etc:           ['기타','비고','메모','note'],
+  etc:           ['참조사항','기타','비고','메모','note','사유','reason'],
 };
 
 function ordMapHeaders(headers) {
@@ -2380,7 +2380,7 @@ function ordParseAndRender(file) {
     // KPI
     document.getElementById('ord-kv-total').textContent = totalCnt.toLocaleString() + '건';
     document.getElementById('ord-kv-low').textContent   = lowRows.length.toLocaleString() + '건';
-    document.getElementById('ord-tab-badge').textContent = lowRows.length + '건';
+    const _badge = document.getElementById('ord-tab-badge'); if(_badge) _badge.textContent = lowRows.length + '건';
     if (lowRows.length) {
       const avg = lowRows.reduce((a, r) => a + r.margin_rate, 0) / lowRows.length;
       const min = Math.min(...lowRows.map(r => r.margin_rate));
@@ -2402,7 +2402,7 @@ function ordParseAndRender(file) {
     // 테이블 렌더
     const tbody = document.getElementById('ord-tbody');
     if (!lowRows.length) {
-      tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:52px;color:var(--text-muted);">
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:52px;color:var(--text-muted);">
         <div style="font-size:36px;margin-bottom:12px;opacity:.3;">✅</div>
         <div style="font-weight:700;margin-bottom:4px;">10% 미만 수주건 없음</div>
         <div style="font-size:12px;">모든 수주건의 마진율이 10% 이상입니다</div>
@@ -2428,17 +2428,19 @@ function ordParseAndRender(file) {
             <td class="td-cat">${r.item_code||'—'}</td>
             <td class="td-sub">${r.item_name||'—'}</td>
             <td class="td-num">${ordFmtNum(r.order_qty)}</td>
-            <td class="td-num">${ordFmtNum(r.order_price)}</td>
             <td class="td-sub">${r.maker||'—'}</td>
             <td class="td-sub">${r.po_vendor||'—'}</td>
             <td class="td-num">${ordFmtNum(r.po_price)}</td>
             <td class="td-margin" style="${ordMgStyle(r.margin_rate)}">${ordFmtPct(r.margin_rate)}</td>
-            <td class="td-sub">${r.etc||'—'}</td>
+            <td class="td-sub" style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.etc||''}">${r.etc||'—'}</td>
           </tr>`;
         });
       });
       tbody.innerHTML = html;
     }
+    window._ordRows = lowRows;
+    document.getElementById('ord-save-btn').disabled = false;
+    document.getElementById('ord-upload-btn').disabled = false;
     document.getElementById('ord-preview').style.display = '';
   };
   reader.readAsArrayBuffer(file);
@@ -2470,16 +2472,123 @@ function ordHandleFile(f) {
 }
 
 function resetOrder() {
-  document.getElementById('ord-dropzone').querySelector('h2').textContent = '엑셀(.xlsx / .xls) 파일을 드래그하거나 클릭해서 선택';
-  document.getElementById('ord-dropzone').querySelector('p').textContent  = '수주자 · 수주일 · 수주처 · 품명코드 · 품명 · 수주량 · 수주단가 · 제조업체 · 발주처 · 발주단가 · 마진율 · 기타';
-  document.getElementById('ord-file-info').style.display  = 'none';
-  document.getElementById('ord-map-warn').style.display   = 'none';
-  document.getElementById('ord-kpi').style.display        = 'none';
-  document.getElementById('ord-preview').style.display    = 'none';
-  document.getElementById('ord-tbody').innerHTML          = '';
-  document.getElementById('ord-tab-badge').textContent    = '0건';
-  document.getElementById('ord-fileInput').value          = '';
+  const dz = document.getElementById('ord-dropzone');
+  if(dz) { dz.querySelector('h2').textContent='엑셀(.xlsx / .xls) 파일을 드래그하거나 클릭해서 선택'; dz.querySelector('p').textContent='수주자·수주일·수주처·품명코드·품명·수주량·제조업체·발주처·발주단가·마진율·사유'; }
+  ['ord-file-info','ord-map-warn','ord-kpi','ord-preview'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+  const tb=document.getElementById('ord-tbody'); if(tb) tb.innerHTML='';
+  const b=document.getElementById('ord-tab-badge'); if(b) b.textContent='0건';
+  const fi=document.getElementById('ord-fileInput'); if(fi) fi.value='';
+  window._ordRows = [];
 }
+function resetOrd() { resetOrder(); }
+
+/* ── 수주건 Supabase 저장/업로드/히스토리 ── */
+const ORD_SUPA_URL = 'https://fhlowhfqgmjnmzgvmjsi.supabase.co';
+const ORD_SUPA_KEY = ISSUE_KEY;
+
+async function saveOrd() {
+  if(!window._ordRows || !window._ordRows.length){ showToast('저장할 데이터가 없습니다.','warn'); return; }
+  const btn = document.getElementById('ord-save-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    const payload = window._ordRows.map(r => ({
+      orderer: r.orderer, order_date: ordFmtDate(r.order_date),
+      customer_name: r.customer_name, item_code: r.item_code,
+      item_name: r.item_name, order_qty: r.order_qty,
+      maker: r.maker, po_vendor: r.po_vendor,
+      po_price: r.po_price, margin_rate: r.margin_rate,
+      etc: r.etc, is_uploaded: false,
+      saved_at: new Date().toISOString()
+    }));
+    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error(await res.text());
+    showToast(`✅ ${payload.length}건 저장 완료`,'success');
+    btn.textContent = '✔ 저장됨';
+  } catch(e) {
+    showToast('저장 오류: '+e.message,'error');
+    btn.disabled = false; btn.textContent = '💾 저장';
+  }
+}
+
+async function uploadOrd() {
+  if(!window._ordRows || !window._ordRows.length){ showToast('업로드할 데이터가 없습니다.','warn'); return; }
+  const btn = document.getElementById('ord-upload-btn');
+  btn.disabled = true; btn.textContent = '업로드 중...';
+  try {
+    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders?is_uploaded=eq.false`, {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
+      body: JSON.stringify({is_uploaded:true, uploaded_at:new Date().toISOString()})
+    });
+    if(!res.ok) throw new Error(await res.text());
+    showToast('☁ 업로드 완료','success');
+    btn.textContent = '✔ 업로드됨';
+  } catch(e) {
+    showToast('업로드 오류: '+e.message,'error');
+    btn.disabled = false; btn.textContent = '☁ 업로드';
+  }
+}
+
+async function loadOrdHistory() {
+  const year = document.getElementById('ord-h-year')?.value || '';
+  const month = document.getElementById('ord-h-month')?.value || '';
+  const keyword = (document.getElementById('ord-h-keyword')?.value||'').trim();
+  let url = `${ORD_SUPA_URL}/rest/v1/orders?order=saved_at.desc&limit=500`;
+  if(year && year!=='--년도--') url += `&saved_at=gte.${year}-01-01T00:00:00&saved_at=lt.${parseInt(year)+1}-01-01T00:00:00`;
+  if(month) url += `&saved_at=gte.${year||new Date().getFullYear()}-${month}-01T00:00:00`;
+  try {
+    const res = await fetch(url, {headers:{'apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY}});
+    const rows = await res.json();
+    const filtered = keyword ? rows.filter(r=>(r.customer_name+r.item_name).toLowerCase().includes(keyword.toLowerCase())) : rows;
+    const tbody = document.getElementById('ord-h-tbody');
+    if(!tbody) return;
+    const kpiEl = document.getElementById('ord-h-kpi');
+    const totalEl = document.getElementById('ord-h-total');
+    const avgEl = document.getElementById('ord-h-avg');
+    if(kpiEl) kpiEl.style.display = filtered.length ? 'flex':'none';
+    if(totalEl) totalEl.textContent = filtered.length+'건';
+    if(avgEl && filtered.length) {
+      const avg = filtered.reduce((s,r)=>s+(r.margin_rate||0),0)/filtered.length;
+      avgEl.textContent = avg.toFixed(1)+'%';
+    }
+    tbody.innerHTML = filtered.map(r=>`<tr>
+      <td>${r.orderer||'—'}</td><td>${(r.order_date||'').slice(0,10)}</td>
+      <td>${r.customer_name||'—'}</td><td>${r.item_code||'—'}</td>
+      <td>${r.item_name||'—'}</td><td style="text-align:right">${r.order_qty||'—'}</td>
+      <td>${r.maker||'—'}</td><td>${r.po_vendor||'—'}</td>
+      <td style="text-align:right">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
+      <td style="text-align:right;color:var(--danger)">${r.margin_rate!=null?r.margin_rate.toFixed(1)+'%':'—'}</td>
+      <td>${r.etc||'—'}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${(r.saved_at||'').slice(0,10)}</td>
+      <td><span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${r.is_uploaded?'rgba(46,158,110,.15)':'rgba(200,120,0,.12)'};color:${r.is_uploaded?'var(--success)':'var(--warn)'}">${r.is_uploaded?'업로드':'저장만'}</span></td>
+    </tr>`).join('');
+  } catch(e) { console.error('히스토리 로드 오류',e); }
+}
+
+function addOrdManualRow() {
+  const tbody = document.getElementById('ord-manual-tbody');
+  if(!tbody) return;
+  tbody.insertAdjacentHTML('beforeend',`<tr>
+    <td><input class="filter-input" style="width:70px" placeholder="수주자"></td>
+    <td><input class="filter-input" style="width:90px" placeholder="2026-07-01"></td>
+    <td><input class="filter-input" style="width:120px" placeholder="수주처"></td>
+    <td><input class="filter-input" style="width:70px" placeholder="코드"></td>
+    <td><input class="filter-input" style="width:130px" placeholder="품명"></td>
+    <td><input class="filter-input" style="width:50px;text-align:right" placeholder="1"></td>
+    <td><input class="filter-input" style="width:80px" placeholder="제조업체"></td>
+    <td><input class="filter-input" style="width:80px" placeholder="발주처"></td>
+    <td><input class="filter-input" style="width:80px;text-align:right" placeholder="발주단가"></td>
+    <td><input class="filter-input" style="width:55px;text-align:right" placeholder="9.5%"></td>
+    <td><input class="filter-input" style="width:120px" placeholder="사유"></td>
+    <td><button class="btn btn-ghost" style="padding:4px 8px;font-size:12px" onclick="this.closest('tr').remove()">✕</button></td>
+  </tr>`);
+}
+function saveOrdManual()   { showToast('수기입력 저장은 추후 구현 예정입니다.','warn'); }
+function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 예정입니다.','warn'); }
 
 </script>
 <div id="toast-container"></div>
