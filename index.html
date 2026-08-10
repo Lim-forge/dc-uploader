@@ -613,11 +613,31 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
     <svg class="hub-lines" viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <filter id="lg" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="dg" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <radialGradient id="orb-white" cx="50%" cy="45%" r="60%">
-          <stop offset="0%" stop-color="#ffffff"/>
-          <stop offset="55%" stop-color="#eaf3ff"/>
-          <stop offset="100%" stop-color="#bcd4ee"/>
+        <filter id="dg" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <radialGradient id="orb-green" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#eafff5"/>
+          <stop offset="45%" stop-color="#5ee0ad"/>
+          <stop offset="100%" stop-color="#1f9e75"/>
+        </radialGradient>
+        <radialGradient id="orb-red" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#ffe8e5"/>
+          <stop offset="45%" stop-color="#f08a86"/>
+          <stop offset="100%" stop-color="#c23f3b"/>
+        </radialGradient>
+        <radialGradient id="orb-purple" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#f1ecff"/>
+          <stop offset="45%" stop-color="#ad93e8"/>
+          <stop offset="100%" stop-color="#7654c4"/>
+        </radialGradient>
+        <radialGradient id="orb-orange" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#fff3e0"/>
+          <stop offset="45%" stop-color="#f2b767"/>
+          <stop offset="100%" stop-color="#c8791a"/>
+        </radialGradient>
+        <radialGradient id="orb-gold" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#fff6e0"/>
+          <stop offset="45%" stop-color="#f5c65a"/>
+          <stop offset="100%" stop-color="#d18a1a"/>
         </radialGradient>
       </defs>
       <!-- 연결선: DC(480,400) → 각 아이콘 -->
@@ -628,62 +648,42 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
       <!-- 미출고(745,400) -->
       <line class="hl" x1="555" y1="400" x2="667" y2="400" stroke="rgba(74,127,193,0.75)" filter="url(#lg)"/>
 
-      <!-- 파티클 (각 자료 → 중앙 DC로 빨려들어가는 은은한 흰빛 광원) -->
+      <!-- 파티클 (경로별 아이콘 색상, 개수 축소 + halo 축소 + 타이밍 비동기화) -->
 
       <!-- p0 경로: 반품처리건 -->
       <path id="p0" d="M480,208 L480,327"/>
-      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="7.5" fill="rgba(56,200,140,0.32)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="5" fill="url(#orb-green)" opacity="0.9"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="6.0" fill="rgba(56,200,140,0.19)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-1.1s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="3.5" fill="url(#orb-green)" opacity="0.55"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-1.1s"><mpath href="#p0"/></animateMotion></circle>
 
       <!-- p1 경로: 10% 미만 출고건 -->
       <path id="p1" d="M335,278 L424,353"/>
-      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="7.5" fill="rgba(220,80,80,0.32)" filter="url(#dg)"><animateMotion dur="2.4s" repeatCount="indefinite" begin="-0.3s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="5" fill="url(#orb-red)" opacity="0.9"><animateMotion dur="2.4s" repeatCount="indefinite" begin="-0.3s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="6.0" fill="rgba(220,80,80,0.19)" filter="url(#dg)"><animateMotion dur="2.4s" repeatCount="indefinite" begin="-1.5s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="3.5" fill="url(#orb-red)" opacity="0.55"><animateMotion dur="2.4s" repeatCount="indefinite" begin="-1.5s"><mpath href="#p1"/></animateMotion></circle>
 
       <!-- p2 경로: 10% 미만 수주건 -->
       <path id="p2" d="M626,278 L536,353"/>
-      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="7.5" fill="rgba(130,80,220,0.32)" filter="url(#dg)"><animateMotion dur="2.6s" repeatCount="indefinite" begin="-0.6s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="5" fill="url(#orb-purple)" opacity="0.9"><animateMotion dur="2.6s" repeatCount="indefinite" begin="-0.6s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="6.0" fill="rgba(130,80,220,0.19)" filter="url(#dg)"><animateMotion dur="2.6s" repeatCount="indefinite" begin="-1.9s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="3.5" fill="url(#orb-purple)" opacity="0.55"><animateMotion dur="2.6s" repeatCount="indefinite" begin="-1.9s"><mpath href="#p2"/></animateMotion></circle>
 
       <!-- p3 경로: 수주취소·변경건 -->
       <path id="p3" d="M293,400 L405,400"/>
-      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="7.5" fill="rgba(220,140,20,0.32)" filter="url(#dg)"><animateMotion dur="2.9s" repeatCount="indefinite" begin="-0.9s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="5" fill="url(#orb-orange)" opacity="0.9"><animateMotion dur="2.9s" repeatCount="indefinite" begin="-0.9s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="6.0" fill="rgba(220,140,20,0.19)" filter="url(#dg)"><animateMotion dur="2.9s" repeatCount="indefinite" begin="-2.2s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="3.5" fill="url(#orb-orange)" opacity="0.55"><animateMotion dur="2.9s" repeatCount="indefinite" begin="-2.2s"><mpath href="#p3"/></animateMotion></circle>
 
       <!-- p4 경로: 미출고내역 -->
       <path id="p4" d="M667,400 L555,400"/>
-      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="7.5" fill="rgba(230,165,45,0.32)" filter="url(#dg)"><animateMotion dur="3.1s" repeatCount="indefinite" begin="-0.15s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="5" fill="url(#orb-gold)" opacity="0.9"><animateMotion dur="3.1s" repeatCount="indefinite" begin="-0.15s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="6.0" fill="rgba(230,165,45,0.19)" filter="url(#dg)"><animateMotion dur="3.1s" repeatCount="indefinite" begin="-1.6s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="3.5" fill="url(#orb-gold)" opacity="0.55"><animateMotion dur="3.1s" repeatCount="indefinite" begin="-1.6s"><mpath href="#p4"/></animateMotion></circle>
     </svg>
 
     <!-- ── 중앙 DC 허브 ── -->
