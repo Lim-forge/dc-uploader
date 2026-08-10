@@ -2693,10 +2693,14 @@ async function loadOrdHistory() {
       const key = `${r.orderer}|${r.order_date}|${r.item_code}`;
       const prev = dedupeMap.get(key);
       if(!prev) { dedupeMap.set(key, r); return; }
-      const rBetter = (r.reason && !prev.reason)
-        || (!prev.reason && r.item_name !== r.item_code && prev.item_name === prev.item_code)
-        || (r.created_at > (prev.created_at||''));
-      if(rBetter) dedupeMap.set(key, r);
+      // 최신 created_at 기준으로 선택, reason은 있는 쪽에서 병합
+      if(r.created_at > (prev.created_at||'')) {
+        const merged = {...r};
+        if(!r.reason && prev.reason) { merged.reason = prev.reason; merged.reason_at = prev.reason_at; }
+        dedupeMap.set(key, merged);
+      } else if(!prev.reason && r.reason) {
+        dedupeMap.set(key, {...prev, reason: r.reason, reason_at: r.reason_at});
+      }
     });
     const dedupedRows = [...dedupeMap.values()];
 
