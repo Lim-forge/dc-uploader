@@ -189,7 +189,7 @@ async function saveAllReasons() {
       await fetch(`${SUPA_URL}/rest/v1/orders?id=eq.${id}`, {
         method:'PATCH',
         headers:{...hdrs,'Content-Type':'application/json','Prefer':'return=minimal'},
-        body: JSON.stringify({reason})
+        body: JSON.stringify({reason, reason_at: new Date().toISOString()})
       });
       done++;
       status.textContent = `${done}/${updates.length} 저장 중...`;

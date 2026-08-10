@@ -851,7 +851,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
           <span id="ord-count" style="background:rgba(74,127,193,0.15);color:var(--accent);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;">0건</span>
           <button class="btn btn-ghost" onclick="resetOrd()" style="margin-left:auto;padding:5px 14px;font-size:12px;">↺ 초기화</button>
           <button class="btn btn-success" id="ord-save-btn" onclick="showOrdMonthModal()" style="padding:5px 14px;font-size:12px;" disabled>💾 저장</button>
-          <button class="btn btn-primary" id="ord-copy-all-btn" onclick="copyAllOrdLinks()" style="padding:5px 14px;font-size:12px;display:none;">📋 전체 링크 복사</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -908,9 +907,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <table>
           <thead><tr>
             <th>수주자</th><th>수주일</th><th>수주처</th><th>품명코드</th>
-            <th>품명</th><th style="text-align:right">수주량</th>
-            <th>제조업체</th><th>발주처</th><th style="text-align:right">발주단가</th>
-            <th style="text-align:right">마진율</th><th>사유</th><th>저장일</th>
+            <th>품명</th><th style="text-align:right;width:50px">수주량</th>
+            <th style="width:60px">제조업체</th><th style="width:60px">발주처</th><th style="text-align:right;width:80px">발주단가</th>
+            <th style="text-align:right;width:55px">마진율</th>
+            <th style="min-width:220px">사유</th>
+            <th style="width:80px">저장일</th><th style="width:80px">확인날짜</th>
           </tr></thead>
           <tbody id="ord-h-tbody"></tbody>
         </table>
@@ -2387,13 +2388,15 @@ function ordParseAndRender(file) {
       };
     });
 
-    // ── 필터링 ──
+    // ── 필터링 (마진율 반올림 적용: 9.5→10 제외, 9.4→9 포함) ──
     const EXCL_ORDERER  = ['이은정','임영재','서재란','이나연','김정대'];
     const EXCL_CHANNEL  = ['업자','대리점'];
     const EXCL_KEYWORD  = ['폐기','취소','반품'];
 
     const lowRows = all.filter(r => {
-      if (r.margin_rate == null || r.margin_rate >= 10) return false;
+      if (r.margin_rate == null) return false;
+      const mgR = Math.round(r.margin_rate); // 반올림: 9.5→10 제외, 9.4→9 포함
+      if (mgR >= 10) return false;
       // 수주자 제외 (이름 + 채널)
       if (EXCL_ORDERER.some(n => (r.orderer||'').includes(n))) return false;
       if (EXCL_CHANNEL.some(c => (r.orderer||'').includes(c))) return false;
@@ -2404,6 +2407,8 @@ function ordParseAndRender(file) {
       if (EXCL_KEYWORD.some(k => txt.includes(k))) return false;
       return true;
     });
+    // 마진율을 반올림 정수로 업데이트
+    lowRows.forEach(r => { r.margin_rate_display = Math.round(r.margin_rate); });
 
     // KPI
     const totalCnt = all.length;
@@ -2461,7 +2466,7 @@ function ordParseAndRender(file) {
             <td class="td-sub">${r.maker||'—'}</td>
             <td class="td-sub">${r.po_vendor||'—'}</td>
             <td class="td-num">${ordFmtNum(r.po_price)}</td>
-            <td class="td-margin" style="${ordMgStyle(r.margin_rate)}">${ordFmtPct(r.margin_rate)}</td>
+            <td class="td-margin" style="${ordMgStyle(r.margin_rate)}">${r.margin_rate_display!=null?r.margin_rate_display+'%':ordFmtPct(r.margin_rate)}</td>
             <td class="td-sub" style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.etc||''}">${r.etc||'—'}</td>
           </tr>`;
         });
@@ -2670,9 +2675,19 @@ async function loadOrdHistory() {
       return true;
     });
 
+    // ── 중복 제거 (orderer+order_date+item_code 기준, 사유 있는 것 우선) ──
+    const dedupeMap = new Map();
+    validRows.forEach(r => {
+      const key = `${r.orderer}|${r.order_date}|${r.item_code}`;
+      if(!dedupeMap.has(key) || (r.reason && !dedupeMap.get(key).reason)) {
+        dedupeMap.set(key, r);
+      }
+    });
+    const dedupedRows = [...dedupeMap.values()];
+
     const filtered = keyword
-      ? validRows.filter(r=>((r.customer_name||'')+(r.item_name||'')+(r.orderer||'')).toLowerCase().includes(keyword.toLowerCase()))
-      : validRows;
+      ? dedupedRows.filter(r=>((r.customer_name||'')+(r.item_name||'')+(r.orderer||'')).toLowerCase().includes(keyword.toLowerCase()))
+      : dedupedRows;
     const tbody = document.getElementById('ord-h-tbody');
     if(!tbody) return;
     const kpiEl = document.getElementById('ord-h-kpi');
@@ -2699,32 +2714,67 @@ async function loadOrdHistory() {
       const grpRows = groups[name];
       const avgMg = grpRows.reduce((s,r)=>s+(r.margin_rate||0),0)/grpRows.length;
       const reasonCount = grpRows.filter(r=>r.reason).length;
+      const linkYm = y && month ? `${y}-${month.padStart(2,'0')}` : y ? y+'-'+String(new Date().getMonth()+1).padStart(2,'0') : '';
+      const link = `${location.origin}/reason.html?ord=${encodeURIComponent(name)}${linkYm?'&ym='+linkYm:''}`;
       html += `<tr style="background:rgba(240,245,255,.8);">
         <td colspan="12" style="padding:8px 13px;font-weight:700;font-size:12px;color:#4a6a8a;border-top:2px solid rgba(180,200,230,.4);">
           👤 <span style="color:#1a2a3a">${name}</span>
           <span style="background:rgba(74,127,193,.12);color:#4a7fc1;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px;">${grpRows.length}건</span>
           <span style="background:rgba(220,80,80,.1);color:#d95f5f;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:4px;">평균 ${avgMg.toFixed(1)}%</span>
           <span style="background:${reasonCount===grpRows.length?'rgba(46,158,110,.12)':'rgba(200,140,20,.1)'};color:${reasonCount===grpRows.length?'#2e9e6e':'#b08010'};font-size:10px;padding:2px 8px;border-radius:4px;margin-left:4px;">사유 ${reasonCount}/${grpRows.length}</span>
+          <button onclick="copyOrdGroupLink('${link}','${name}')"
+            style="float:right;padding:3px 12px;font-size:11px;border-radius:6px;border:1px solid rgba(74,127,193,.5);background:rgba(74,127,193,.1);color:#4a7fc1;cursor:pointer;font-weight:700;">🔗 링크 복사</button>
         </td></tr>`;
       grpRows.forEach(r => {
+        const mgDisp = r.margin_rate!=null ? Math.round(r.margin_rate)+'%' : '—';
         html += `<tr>
-          <td>${r.orderer||'—'}</td>
-          <td>${(r.order_date||'').slice(0,10)}</td>
+          <td style="white-space:nowrap">${r.orderer||'—'}</td>
+          <td style="white-space:nowrap">${(r.order_date||'').slice(0,10)}</td>
           <td>${r.customer_name||'—'}</td>
           <td>${r.item_code||'—'}</td>
           <td>${r.item_name||'—'}</td>
           <td style="text-align:right">${r.order_qty||'—'}</td>
-          <td>${r.maker||'—'}</td>
-          <td>${r.po_vendor||'—'}</td>
-          <td style="text-align:right">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
-          <td style="text-align:right;color:var(--danger)">${r.margin_rate!=null?r.margin_rate.toFixed(1)+'%':'—'}</td>
-          <td style="color:${r.reason?'#1a2a3a':'#aaa'}">${r.reason||'미입력'}</td>
-          <td style="font-size:11px;color:var(--text-muted)">${(r.created_at||'').slice(0,10)}</td>
+          <td style="font-size:11px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.maker||''}">${r.maker||'—'}</td>
+          <td style="font-size:11px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.po_vendor||''}">${r.po_vendor||'—'}</td>
+          <td style="text-align:right;white-space:nowrap">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
+          <td style="text-align:right;color:var(--danger);font-weight:700;white-space:nowrap">${mgDisp}</td>
+          <td style="min-width:220px;">
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type="text" value="${(r.reason||'').replace(/"/g,'&quot;')}"
+                placeholder="사유를 입력하세요..."
+                id="ord-h-reason-${r.id}"
+                style="flex:1;border:1.5px solid ${r.reason?'#c8dcea':'#e8c0b0'};border-radius:7px;padding:5px 9px;font-size:12px;font-family:inherit;outline:none;background:${r.reason?'#fff':'#fff8f5'};"
+                onfocus="this.style.borderColor='#4a7fc1'"
+                onblur="this.style.borderColor=this.value?'#2e9e6e':'#e8c0b0'">
+              <button onclick="saveOrdHistoryReason('${r.id}')"
+                style="padding:4px 10px;border-radius:7px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">저장</button>
+            </div>
+          </td>
+          <td style="font-size:11px;color:var(--text-muted);white-space:nowrap">${(r.created_at||'').slice(0,10)}</td>
+          <td style="font-size:11px;white-space:nowrap;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}">${r.reason_at?(r.reason_at.slice(0,10)):'미확인'}</td>
         </tr>`;
       });
     });
     tbody.innerHTML = html || `<tr><td colspan="12" style="text-align:center;padding:40px;color:#aaa;">데이터가 없습니다</td></tr>`;
   } catch(e) { console.error('히스토리 로드 오류',e); }
+}
+
+async function saveOrdHistoryReason(id) {
+  const el = document.getElementById('ord-h-reason-'+id);
+  if(!el) return;
+  const reason = el.value.trim();
+  if(!reason) { showToast('사유를 입력해주세요.','warn'); return; }
+  try {
+    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders?id=eq.${id}`, {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
+      body: JSON.stringify({reason, reason_at: new Date().toISOString()})
+    });
+    if(!res.ok) throw new Error(await res.text());
+    el.style.borderColor='#2e9e6e';
+    showToast('✅ 사유 저장됨 — 히스토리가 갱신됩니다','success');
+    setTimeout(()=>loadOrdHistory(), 600);
+  } catch(e){ showToast('저장 오류: '+e.message,'error'); }
 }
 
 function addOrdManualRow() {
