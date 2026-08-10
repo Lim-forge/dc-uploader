@@ -602,49 +602,121 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
       <div class="hl-sub">미출고 현황 관리</div>
     </div>
 
-    <!-- ── SVG 연결선 + 파티클 ── -->
+    <!-- ── SVG 연결선 + 아이콘→DC 흘러들어가는 이펙트 ── -->
     <svg class="hub-lines" viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <filter id="lg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="dg"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <!-- 파티클 glow 필터 -->
+        <filter id="pglow" x="-200%" y="-200%" width="500%" height="500%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        <!-- 선 glow 필터 -->
+        <filter id="lglow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
       </defs>
-      <!-- 연결선: DC(480,400) → 각 아이콘 -->
-      <!-- 반품(480,135) -->
-      <line class="hl" x1="480" y1="327" x2="480" y2="208" stroke="rgba(56,200,140,0.75)" filter="url(#lg)"/>
-      <!-- 출고건(277,230) -->
-      <line class="hl" x1="423" y1="353" x2="350" y2="278" stroke="rgba(220,80,80,0.75)" filter="url(#lg)"/>
-      <!-- 수주건(683,230) -->
-      <line class="hl" x1="537" y1="353" x2="610" y2="278" stroke="rgba(130,80,220,0.75)" filter="url(#lg)"/>
-      <!-- 취소변경(215,400) -->
-      <line class="hl" x1="405" y1="400" x2="293" y2="400" stroke="rgba(220,140,20,0.75)" filter="url(#lg)"/>
-      <!-- 미출고(745,400) -->
-      <line class="hl" x1="555" y1="400" x2="667" y2="400" stroke="rgba(74,127,193,0.75)" filter="url(#lg)"/>
 
-      <!-- 파티클 (각 자료 → 중앙 DC로 모임) -->
-      <circle r="5" fill="rgba(56,200,140,0.95)" filter="url(#dg)">
-        <animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#p0"/></animateMotion>
-      </circle>
-      <path id="p0" d="M480,208 L480,327"/>
+      <!-- ── 연결선 (얇고 은은하게) ── -->
+      <!-- 반품(위) - 실선 없음, 파티클만 -->
+      <!-- 출고(좌상) - 실선 없음, 파티클만 -->
+      <!-- 수주(우상) - 실선 없음, 파티클만 -->
+      <!-- line removed -->
+      <!-- 취소(좌) - 실선 없음, 파티클만 -->
+      <!-- 미출고(우) - 실선 없음, 파티클만 -->
 
-      <circle r="5" fill="rgba(220,80,80,0.95)" filter="url(#dg)">
-        <animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.8s"><mpath href="#p1"/></animateMotion>
-      </circle>
-      <path id="p1" d="M350,278 L423,353"/>
+      <!-- ── 파티클: 각 아이콘 → DC 중앙으로 흘러들어감 ── -->
 
-      <circle r="5" fill="rgba(130,80,220,0.95)" filter="url(#dg)">
-        <animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p2"/></animateMotion>
+      <!-- 반품(480,208) → DC(480,327) : 초록 -->
+      <!-- 파티클1 -->
+      <circle r="4" fill="rgba(56,220,150,0.95)" filter="url(#pglow)">
+        <animateMotion dur="1.8s" repeatCount="indefinite" begin="0s">
+          <mpath href="#path-top"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="1.8s" repeatCount="indefinite" begin="0s"/>
+        <animate attributeName="r" values="2;4;4;2" keyTimes="0;0.1;0.85;1" dur="1.8s" repeatCount="indefinite" begin="0s"/>
       </circle>
-      <path id="p2" d="M610,278 L537,353"/>
+      <!-- 파티클2 (딜레이) -->
+      <circle r="4" fill="rgba(180,255,220,0.80)" filter="url(#pglow)">
+        <animateMotion dur="1.8s" repeatCount="indefinite" begin="-0.9s">
+          <mpath href="#path-top"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="1.8s" repeatCount="indefinite" begin="-0.9s"/>
+        <animate attributeName="r" values="2;3;3;1.5" keyTimes="0;0.1;0.85;1" dur="1.8s" repeatCount="indefinite" begin="-0.9s"/>
+      </circle>
+      <path id="path-top" d="M480,208 L480,327" fill="none"/>
 
-      <circle r="5" fill="rgba(220,140,20,0.95)" filter="url(#dg)">
-        <animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.5s"><mpath href="#p3"/></animateMotion>
+      <!-- 출고(350,278) → DC(423,353) : 빨강 -->
+      <circle r="4" fill="rgba(240,90,90,0.95)" filter="url(#pglow)">
+        <animateMotion dur="1.6s" repeatCount="indefinite" begin="-0.3s">
+          <mpath href="#path-tl"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="1.6s" repeatCount="indefinite" begin="-0.3s"/>
+        <animate attributeName="r" values="2;4;4;2" keyTimes="0;0.1;0.85;1" dur="1.6s" repeatCount="indefinite" begin="-0.3s"/>
       </circle>
-      <path id="p3" d="M293,400 L405,400"/>
+      <circle r="3" fill="rgba(255,190,190,0.75)" filter="url(#pglow)">
+        <animateMotion dur="1.6s" repeatCount="indefinite" begin="-1.1s">
+          <mpath href="#path-tl"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="1.6s" repeatCount="indefinite" begin="-1.1s"/>
+      </circle>
+      <path id="path-tl" d="M350,278 L423,353" fill="none"/>
 
-      <circle r="5" fill="rgba(74,127,193,0.95)" filter="url(#dg)">
-        <animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.8s"><mpath href="#p4"/></animateMotion>
+      <!-- 수주(610,278) → DC(537,353) : 보라 -->
+      <circle r="4" fill="rgba(150,90,240,0.95)" filter="url(#pglow)">
+        <animateMotion dur="1.6s" repeatCount="indefinite" begin="-0.7s">
+          <mpath href="#path-tr"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="1.6s" repeatCount="indefinite" begin="-0.7s"/>
+        <animate attributeName="r" values="2;4;4;2" keyTimes="0;0.1;0.85;1" dur="1.6s" repeatCount="indefinite" begin="-0.7s"/>
       </circle>
-      <path id="p4" d="M667,400 L555,400"/>
+      <circle r="3" fill="rgba(210,180,255,0.75)" filter="url(#pglow)">
+        <animateMotion dur="1.6s" repeatCount="indefinite" begin="-1.4s">
+          <mpath href="#path-tr"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="1.6s" repeatCount="indefinite" begin="-1.4s"/>
+      </circle>
+      <path id="path-tr" d="M610,278 L537,353" fill="none"/>
+
+      <!-- 취소(293,400) → DC(405,400) : 오렌지 -->
+      <circle r="4" fill="rgba(240,150,30,0.95)" filter="url(#pglow)">
+        <animateMotion dur="2.0s" repeatCount="indefinite" begin="-0.5s">
+          <mpath href="#path-left"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="2.0s" repeatCount="indefinite" begin="-0.5s"/>
+        <animate attributeName="r" values="2;4;4;2" keyTimes="0;0.1;0.85;1" dur="2.0s" repeatCount="indefinite" begin="-0.5s"/>
+      </circle>
+      <circle r="3" fill="rgba(255,220,140,0.75)" filter="url(#pglow)">
+        <animateMotion dur="2.0s" repeatCount="indefinite" begin="-1.5s">
+          <mpath href="#path-left"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="2.0s" repeatCount="indefinite" begin="-1.5s"/>
+      </circle>
+      <path id="path-left" d="M293,400 L405,400" fill="none"/>
+
+      <!-- 미출고(667,400) → DC(555,400) : 파랑 -->
+      <circle r="4" fill="rgba(80,140,220,0.95)" filter="url(#pglow)">
+        <animateMotion dur="2.0s" repeatCount="indefinite" begin="-1.0s">
+          <mpath href="#path-right"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="2.0s" repeatCount="indefinite" begin="-1.0s"/>
+        <animate attributeName="r" values="2;4;4;2" keyTimes="0;0.1;0.85;1" dur="2.0s" repeatCount="indefinite" begin="-1.0s"/>
+      </circle>
+      <circle r="3" fill="rgba(160,210,255,0.75)" filter="url(#pglow)">
+        <animateMotion dur="2.0s" repeatCount="indefinite" begin="-0.2s">
+          <mpath href="#path-right"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="2.0s" repeatCount="indefinite" begin="-0.2s"/>
+      </circle>
+      <path id="path-right" d="M667,400 L555,400" fill="none"/>
+
     </svg>
 
     <!-- ── 중앙 DC 허브 ── -->
