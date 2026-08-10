@@ -397,7 +397,7 @@ select.filter-input{cursor:pointer;}
 .hub-item{
   position:absolute;width:150px;height:150px;
   border-radius:50%;background:transparent;border:none;padding:0;overflow:visible;
-  cursor:pointer;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  cursor:pointer;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1),box-shadow .3s;
   user-select:none;z-index:5;
 }
 .hub-item img{
@@ -407,9 +407,16 @@ select.filter-input{cursor:pointer;}
 }
 .hub-item:hover{transform:translateY(-5px);}
 .hub-item:hover img{transform:scale(1.08);}
+.hub-item:hover{
+  box-shadow:0 0 0 3px rgba(245,200,66,0.55),0 0 34px 10px rgba(245,200,66,0.65),0 0 14px 3px rgba(255,255,255,0.55);
+}
 .hub-item.active img{
-  filter:drop-shadow(0 0 18px rgba(74,127,193,0.6)) drop-shadow(0 6px 14px rgba(0,0,0,0.22));
-  transform:scale(1.06);
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,0.2));
+  transform:none;
+}
+.hub-item:hover img{
+  filter:drop-shadow(0 0 18px rgba(245,200,66,0.75)) drop-shadow(0 6px 14px rgba(0,0,0,0.22)) !important;
+  transform:scale(1.08);
 }
 /* 반원 배치 — center(480,400) R=265, icon 150×150 */
 #nav-return { left:405px; top:60px;  }   /* 90도 */
@@ -434,13 +441,13 @@ select.filter-input{cursor:pointer;}
   -webkit-mask-composite:xor;mask-composite:exclude;
   opacity:0;pointer-events:none;transition:opacity .3s;
 }
-.hub-item:hover::before,.hub-item.active::before{opacity:1;animation:spin-border 1.8s linear infinite;}
+.hub-item:hover::before{opacity:1;animation:spin-border 1.8s linear infinite;}
 @keyframes spin-border{to{transform:rotate(360deg);}}
 #nav-return{--gc:rgba(56,184,126,0.95);}
 #nav-low   {--gc:rgba(220,80,80,0.95);}
 #nav-order {--gc:rgba(147,112,219,0.95);}
 #nav-cancel{--gc:rgba(224,144,80,0.95);}
-#nav-unship{--gc:rgba(74,127,193,0.95);}
+#nav-unship{--gc:rgba(230,165,45,0.95);}
 /* 패널 영역 */
 .panel-area{
   padding:28px 40px 80px;
@@ -605,8 +612,13 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
     <!-- ── SVG 연결선 + 파티클 ── -->
     <svg class="hub-lines" viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <filter id="lg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="dg"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="lg" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="dg" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <radialGradient id="orb-white" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="55%" stop-color="#eaf3ff"/>
+          <stop offset="100%" stop-color="#bcd4ee"/>
+        </radialGradient>
       </defs>
       <!-- 연결선: DC(480,400) → 각 아이콘 -->
       <!-- 반품(480,135) -->
@@ -616,42 +628,62 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
       <!-- 미출고(745,400) -->
       <line class="hl" x1="555" y1="400" x2="667" y2="400" stroke="rgba(74,127,193,0.75)" filter="url(#lg)"/>
 
-      <!-- 파티클 (각 자료 → 중앙 DC로 모임, 경로마다 4개 원이 연속으로 흐르는 네온 효과) -->
+      <!-- 파티클 (각 자료 → 중앙 DC로 빨려들어가는 은은한 흰빛 광원) -->
 
-      <!-- p0 경로: 반품처리건 (초록) -->
+      <!-- p0 경로: 반품처리건 -->
       <path id="p0" d="M480,208 L480,327"/>
-      <circle r="6" fill="rgba(56,200,140,0.95)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="5" fill="rgba(56,200,140,0.75)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="4" fill="rgba(56,200,140,0.55)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p0"/></animateMotion></circle>
-      <circle r="3" fill="rgba(56,200,140,0.4)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p0"/></animateMotion></circle>
+      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.2s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p0"/></animateMotion></circle>
 
-      <!-- p1 경로: 10% 미만 출고건 (빨강) — line 없이 원만 -->
+      <!-- p1 경로: 10% 미만 출고건 -->
       <path id="p1" d="M335,278 L424,353"/>
-      <circle r="6" fill="rgba(220,80,80,0.95)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="5" fill="rgba(220,80,80,0.75)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="4" fill="rgba(220,80,80,0.55)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p1"/></animateMotion></circle>
-      <circle r="3" fill="rgba(220,80,80,0.4)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p1"/></animateMotion></circle>
+      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p1"/></animateMotion></circle>
 
-      <!-- p2 경로: 10% 미만 수주건 (보라) — line 없이 원만 -->
+      <!-- p2 경로: 10% 미만 수주건 -->
       <path id="p2" d="M626,278 L536,353"/>
-      <circle r="6" fill="rgba(130,80,220,0.95)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="5" fill="rgba(130,80,220,0.75)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="4" fill="rgba(130,80,220,0.55)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p2"/></animateMotion></circle>
-      <circle r="3" fill="rgba(130,80,220,0.4)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p2"/></animateMotion></circle>
+      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.5s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p2"/></animateMotion></circle>
 
-      <!-- p3 경로: 수주취소·변경건 (주황) -->
+      <!-- p3 경로: 수주취소·변경건 -->
       <path id="p3" d="M293,400 L405,400"/>
-      <circle r="6" fill="rgba(220,140,20,0.95)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="5" fill="rgba(220,140,20,0.75)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="4" fill="rgba(220,140,20,0.55)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p3"/></animateMotion></circle>
-      <circle r="3" fill="rgba(220,140,20,0.4)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p3"/></animateMotion></circle>
+      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p3"/></animateMotion></circle>
 
-      <!-- p4 경로: 미출고내역 (파랑) -->
+      <!-- p4 경로: 미출고내역 -->
       <path id="p4" d="M667,400 L555,400"/>
-      <circle r="6" fill="rgba(74,127,193,0.95)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="5" fill="rgba(74,127,193,0.75)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="4" fill="rgba(74,127,193,0.55)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p4"/></animateMotion></circle>
-      <circle r="3" fill="rgba(74,127,193,0.4)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="9.9" fill="rgba(255,255,255,0.38)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="4.5" fill="url(#orb-white)" opacity="0.95"><animateMotion dur="2.8s" repeatCount="indefinite" begin="0s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="8.4" fill="rgba(255,255,255,0.3)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="3.8" fill="url(#orb-white)" opacity="0.75"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-0.7s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="6.6" fill="rgba(255,255,255,0.22)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="3.0" fill="url(#orb-white)" opacity="0.55"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-1.4s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="4.8" fill="rgba(255,255,255,0.16)" filter="url(#dg)"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p4"/></animateMotion></circle>
+      <circle r="2.2" fill="url(#orb-white)" opacity="0.4"><animateMotion dur="2.8s" repeatCount="indefinite" begin="-2.1s"><mpath href="#p4"/></animateMotion></circle>
     </svg>
 
     <!-- ── 중앙 DC 허브 ── -->
