@@ -910,7 +910,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
             <th>수주자</th><th>수주일</th><th>수주처</th><th>품명코드</th>
             <th>품명</th><th style="text-align:right">수주량</th>
             <th>제조업체</th><th>발주처</th><th style="text-align:right">발주단가</th>
-            <th style="text-align:right">마진율</th><th>사유</th><th>저장일</th><th>업로드</th>
+            <th style="text-align:right">마진율</th><th>사유</th><th>저장일</th>
           </tr></thead>
           <tbody id="ord-h-tbody"></tbody>
         </table>
@@ -2494,11 +2494,10 @@ async function saveOrd() {
     const payload = window._ordRows.map(r => ({
       orderer: r.orderer, order_date: ordFmtDate(r.order_date),
       customer_name: r.customer_name, item_code: r.item_code,
-      item_name: r.item_name, order_qty: r.order_qty,
+      item_name: r.item_name, order_qty: r.order_qty || null,
       maker: r.maker, po_vendor: r.po_vendor,
-      po_price: r.po_price, margin_rate: r.margin_rate,
-      etc: r.etc, is_uploaded: false,
-      saved_at: new Date().toISOString()
+      po_price: r.po_price || null, margin_rate: r.margin_rate || null,
+      reason: r.etc || null
     }));
     const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders`, {
       method:'POST',
@@ -2515,22 +2514,7 @@ async function saveOrd() {
 }
 
 async function uploadOrd() {
-  if(!window._ordRows || !window._ordRows.length){ showToast('업로드할 데이터가 없습니다.','warn'); return; }
-  const btn = document.getElementById('ord-upload-btn');
-  btn.disabled = true; btn.textContent = '업로드 중...';
-  try {
-    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders?is_uploaded=eq.false`, {
-      method:'PATCH',
-      headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
-      body: JSON.stringify({is_uploaded:true, uploaded_at:new Date().toISOString()})
-    });
-    if(!res.ok) throw new Error(await res.text());
-    showToast('☁ 업로드 완료','success');
-    btn.textContent = '✔ 업로드됨';
-  } catch(e) {
-    showToast('업로드 오류: '+e.message,'error');
-    btn.disabled = false; btn.textContent = '☁ 업로드';
-  }
+  showToast('저장 버튼으로 Supabase에 직접 저장됩니다.','warn');
 }
 
 async function loadOrdHistory() {
@@ -2562,9 +2546,8 @@ async function loadOrdHistory() {
       <td>${r.maker||'—'}</td><td>${r.po_vendor||'—'}</td>
       <td style="text-align:right">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
       <td style="text-align:right;color:var(--danger)">${r.margin_rate!=null?r.margin_rate.toFixed(1)+'%':'—'}</td>
-      <td>${r.etc||'—'}</td>
-      <td style="font-size:11px;color:var(--text-muted)">${(r.saved_at||'').slice(0,10)}</td>
-      <td><span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${r.is_uploaded?'rgba(46,158,110,.15)':'rgba(200,120,0,.12)'};color:${r.is_uploaded?'var(--success)':'var(--warn)'}">${r.is_uploaded?'업로드':'저장만'}</span></td>
+      <td>${r.reason||'—'}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${(r.created_at||'').slice(0,10)}</td>
     </tr>`).join('');
   } catch(e) { console.error('히스토리 로드 오류',e); }
 }
