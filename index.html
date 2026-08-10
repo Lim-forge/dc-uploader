@@ -2459,7 +2459,8 @@ function ordParseAndRender(file) {
     }
     window._ordRows = lowRows;
     document.getElementById('ord-save-btn').disabled = false;
-    document.getElementById('ord-upload-btn').disabled = false;
+    const _upBtn = document.getElementById('ord-upload-btn'); if(_upBtn) _upBtn.disabled = false;
+    const _cpBtn = document.getElementById('ord-copy-all-btn'); if(_cpBtn) _cpBtn.style.display = 'none';
     document.getElementById('ord-preview').style.display = '';
   };
   reader.readAsArrayBuffer(file);
