@@ -850,7 +850,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
           <span style="font-size:13px;font-weight:700;color:var(--text);">수주자별 저마진 수주건</span>
           <span id="ord-count" style="background:rgba(74,127,193,0.15);color:var(--accent);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;">0건</span>
           <button class="btn btn-ghost" onclick="resetOrd()" style="margin-left:auto;padding:5px 14px;font-size:12px;">↺ 초기화</button>
-          <button class="btn btn-success" id="ord-save-btn" onclick="saveOrd()" style="padding:5px 14px;font-size:12px;" disabled>💾 저장</button>
+          <button class="btn btn-success" id="ord-save-btn" onclick="showOrdMonthModal()" style="padding:5px 14px;font-size:12px;" disabled>💾 저장</button>
           <button class="btn btn-primary" id="ord-copy-all-btn" onclick="copyAllOrdLinks()" style="padding:5px 14px;font-size:12px;display:none;">📋 전체 링크 복사</button>
         </div>
         <div class="table-wrap">
@@ -2385,9 +2385,10 @@ function ordParseAndRender(file) {
 
     const lowRows = all.filter(r => {
       if (r.margin_rate == null || r.margin_rate >= 10) return false;
-      // 수주자 제외
+      // 수주자 제외 (이름 + 채널)
       if (EXCL_ORDERER.some(n => (r.orderer||'').includes(n))) return false;
-      // 수주처 채널 제외 (업자·대리점)
+      if (EXCL_CHANNEL.some(c => (r.orderer||'').includes(c))) return false;
+      // 수주처 채널 제외
       if (EXCL_CHANNEL.some(c => (r.customer_name||'').includes(c))) return false;
       // 품명·사유 키워드 제외
       const txt = (r.item_name||'') + '|' + (r.etc||'');
@@ -2431,11 +2432,12 @@ function ordParseAndRender(file) {
       sortedKeys.forEach(name => {
         const grpRows = groups[name];
         const avg = grpRows.reduce((a, r) => a + r.margin_rate, 0) / grpRows.length;
-        html += `<tr style="background:var(--surface2);">
-          <td colspan="12" style="padding:9px 13px;font-weight:700;font-size:12px;color:var(--text-sub);border-top:2px solid var(--border2);">
+        html += `<tr data-ord-grp="${name}" style="background:var(--surface2);">
+          <td colspan="11" style="padding:9px 13px;font-weight:700;font-size:12px;color:var(--text-sub);border-top:2px solid var(--border2);">
             👤 <span style="color:var(--text)">${name}</span>
             <span style="background:var(--gold-dim);color:var(--gold);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px;">${grpRows.length}건</span>
             <span style="background:var(--danger-dim);color:var(--danger);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:4px;">평균 ${ordFmtPct(avg)}</span>
+            <span class="ord-link-slot" style="margin-left:auto;float:right;"></span>
           </td></tr>`;
         // 그룹 내 마진율 낮은 순 정렬
         grpRows.sort((a, b) => a.margin_rate - b.margin_rate);
@@ -2506,40 +2508,71 @@ function resetOrd() { resetOrder(); }
 const ORD_SUPA_URL = 'https://fhlowhfqgmjnmzgvmjsi.supabase.co';
 const ORD_SUPA_KEY = ISSUE_KEY;
 
-async function saveOrd() {
-  if(!window._ordRows || !window._ordRows.length){ showToast('저장할 데이터가 없습니다.','warn'); return; }
+/* ── 수주건 저장 (월 선택 → Supabase → 링크 생성) ── */
+function showOrdMonthModal() {
+  if(!window._ordRows||!window._ordRows.length){showToast('분석된 데이터가 없습니다.','warn');return;}
+  // 기본값: 오늘 월
+  const now = new Date();
+  document.getElementById('ord-month-input').value =
+    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('ord-month-modal').style.display='flex';
+}
+
+async function doSaveOrd() {
+  const ym = document.getElementById('ord-month-input').value;
+  if(!ym){alert('월을 선택해주세요.');return;}
+  document.getElementById('ord-month-modal').style.display='none';
   const btn = document.getElementById('ord-save-btn');
-  btn.disabled = true; btn.textContent = '저장 중...';
+  btn.disabled=true; btn.textContent='저장 중...';
   try {
-    const payload = window._ordRows.map(r => ({
-      orderer: r.orderer, order_date: ordFmtDate(r.order_date),
-      customer_name: r.customer_name, item_code: r.item_code,
-      item_name: r.item_name, order_qty: r.order_qty || null,
-      maker: r.maker, po_vendor: r.po_vendor,
-      po_price: r.po_price || null, margin_rate: r.margin_rate || null,
-      reason: null  // 사유는 링크로 영업사원이 직접 입력
+    const payload = window._ordRows.map(r=>({
+      orderer:r.orderer, order_date:ordFmtDate(r.order_date),
+      customer_name:r.customer_name, item_code:r.item_code,
+      item_name:r.item_name, order_qty:r.order_qty||null,
+      maker:r.maker, po_vendor:r.po_vendor,
+      po_price:r.po_price||null, margin_rate:r.margin_rate||null,
+      reason:null
     }));
-    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders`, {
+    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders`,{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'apikey':ORD_SUPA_KEY,
-        'Authorization':'Bearer '+ORD_SUPA_KEY,
-        'Prefer':'return=representation'  // 저장된 row id 반환
-      },
-      body: JSON.stringify(payload)
+      headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,
+        'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=representation'},
+      body:JSON.stringify(payload)
     });
     if(!res.ok) throw new Error(await res.text());
     const saved = await res.json();
     window._savedOrdRows = saved;
-    showToast(`✅ ${saved.length}건 저장 완료 — 링크를 복사하여 배포하세요`,'success');
-    btn.textContent = '✔ 저장됨';
-    renderOrdLinks(saved);
-  } catch(e) {
+    window._savedOrdYM = ym;
+    btn.textContent='✔ 저장됨';
+    showToast(`✅ ${saved.length}건 저장 완료 — 수주자별 링크를 배포하세요`,'success');
+    // 수주자별 링크 버튼 생성
+    const base = location.origin + location.pathname;
+    const groups = {};
+    saved.forEach(r=>{ if(!groups[r.orderer]) groups[r.orderer]=[]; groups[r.orderer].push(r); });
+    Object.keys(groups).forEach(name=>{
+      const link = `${base}?ord=${encodeURIComponent(name)}&ym=${ym}`;
+      const slot = document.querySelector(`[data-ord-grp="${CSS.escape(name)}"] .ord-link-slot`);
+      if(slot) slot.innerHTML =
+        `<button style="padding:2px 10px;font-size:11px;border-radius:6px;border:1px solid var(--accent);
+          background:rgba(74,127,193,.12);color:var(--accent);cursor:pointer;font-weight:700;"
+          onclick="copyOrdGroupLink('${link}','${name}')">🔗 링크 복사</button>`;
+    });
+    // 전체 링크
+    const allLinks = Object.entries(groups).map(([name,rows])=>{
+      const link=`${base}?ord=${encodeURIComponent(name)}&ym=${ym}`;
+      return `▶ ${name} (${rows.length}건)\n${link}`;
+    }).join('\n\n');
+    const cpBtn=document.getElementById('ord-copy-all-btn');
+    if(cpBtn){cpBtn.style.display='';cpBtn._links=allLinks;}
+  } catch(e){
     showToast('저장 오류: '+e.message,'error');
-    btn.disabled = false; btn.textContent = '💾 저장';
+    btn.disabled=false; btn.textContent='💾 저장';
   }
 }
+function copyOrdGroupLink(link,name){
+  navigator.clipboard.writeText(link).then(()=>showToast(`🔗 ${name} 링크 복사됨`,'success'));
+}
+async function saveOrd(){showOrdMonthModal();}
 
 function renderOrdLinks(savedRows) {
   const base = window.location.origin + window.location.pathname;
@@ -2653,7 +2686,117 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
 
 </script>
 <div id="toast-container"></div>
-<!-- ══ 사유 입력 모달 (URL ?reason={id} 접속 시) ══ -->
+<!-- ══ 월 선택 모달 ══ -->
+<div id="ord-month-modal" style="display:none;position:fixed;inset:0;background:rgba(30,50,80,.55);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+    <div style="font-size:17px;font-weight:800;color:#1a2a3a;margin-bottom:6px;">📅 저장 월 선택</div>
+    <div style="font-size:12.5px;color:#4a6a8a;margin-bottom:20px;">해당 수주건의 기준 월을 선택하세요</div>
+    <input type="month" id="ord-month-input" style="width:100%;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 14px;font-size:15px;outline:none;text-align:center;">
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="document.getElementById('ord-month-modal').style.display='none'"
+        style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
+      <button onclick="doSaveOrd()"
+        style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#2e9e6e,#1a7a52);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 수주자별 사유 입력 모달 (URL ?ord=이름) ══ -->
+<div id="ord-group-modal" style="display:none;position:fixed;inset:0;background:rgba(20,40,70,.6);z-index:9999;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto;">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:min(900px,95vw);box-shadow:0 20px 60px rgba(0,0,0,.3);margin-bottom:40px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="font-size:17px;font-weight:800;color:#1a2a3a;" id="ord-group-title">사유 입력</div>
+      <span id="ord-group-ym" style="font-size:12px;background:#e8f0fa;color:#4a7fc1;padding:3px 10px;border-radius:10px;font-weight:700;"></span>
+      <button onclick="document.getElementById('ord-group-modal').style.display='none';document.body.style.overflow=''"
+        style="margin-left:auto;padding:6px 16px;border-radius:8px;border:1.5px solid #d0dcea;background:#fff;cursor:pointer;font-size:13px;">✕ 닫기</button>
+      <button onclick="saveOrdGroupReasons()"
+        style="padding:7px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">💾 전체 저장</button>
+    </div>
+    <div style="overflow-x:auto;border-radius:12px;border:1px solid #e0e8f0;">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+        <thead><tr style="background:#f0f5fb;">
+          <th style="padding:10px 12px;text-align:left;white-space:nowrap;color:#4a6a8a;font-size:11px;">수주일</th>
+          <th style="padding:10px 12px;text-align:left;">수주처</th>
+          <th style="padding:10px 12px;text-align:left;">품명</th>
+          <th style="padding:10px 12px;text-align:right;white-space:nowrap;">마진율</th>
+          <th style="padding:10px 12px;text-align:left;min-width:220px;">사유 입력</th>
+        </tr></thead>
+        <tbody id="ord-group-tbody"></tbody>
+      </table>
+    </div>
+    <div id="ord-group-done" style="display:none;margin-top:14px;text-align:center;color:#2e9e6e;font-weight:700;font-size:14px;">✅ 저장 완료! 창을 닫으셔도 됩니다.</div>
+  </div>
+</div>
+
+<script>
+// ── URL ?ord={이름}&ym={YYYY-MM} 처리 ──
+(function(){
+  const p = new URLSearchParams(location.search);
+  const ord = p.get('ord'), ym = p.get('ym');
+  if(!ord) return;
+  document.body.style.overflow='hidden';
+  const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps';
+  const BASE='https://fhlowhfqgmjnmzgvmjsi.supabase.co';
+  let url=`${BASE}/rest/v1/orders?orderer=eq.${encodeURIComponent(ord)}&select=*&order=order_date.asc&limit=200`;
+  if(ym){
+    const [y,m]=ym.split('-');
+    const nm=m==='12'?`${parseInt(y)+1}-01`:`${y}-${String(parseInt(m)+1).padStart(2,'0')}`;
+    url+=`&created_at=gte.${ym}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`;
+  }
+  const hdrs={'apikey':KEY,'Authorization':'Bearer '+KEY};
+  fetch(url,{headers:hdrs}).then(r=>r.json()).then(rows=>{
+    const modal=document.getElementById('ord-group-modal');
+    modal.style.display='flex';
+    document.getElementById('ord-group-title').textContent=`👤 ${ord}님의 수주건`;
+    document.getElementById('ord-group-ym').textContent=ym||'전체';
+    const tbody=document.getElementById('ord-group-tbody');
+    tbody.innerHTML=rows.map(r=>`<tr style="border-bottom:1px solid #e8f0f8;">
+      <td style="padding:8px 12px;white-space:nowrap;color:#4a6a8a;">${(r.order_date||'').slice(0,10)}</td>
+      <td style="padding:8px 12px;">${r.customer_name||'—'}</td>
+      <td style="padding:8px 12px;">${r.item_name||'—'}</td>
+      <td style="padding:8px 12px;text-align:right;color:#d95f5f;font-weight:700;">${r.margin_rate!=null?r.margin_rate.toFixed(1)+'%':'—'}</td>
+      <td style="padding:6px 12px;">
+        <textarea data-id="${r.id}" rows="2" placeholder="사유를 입력해주세요..."
+          style="width:100%;border:1.5px solid #d0dcea;border-radius:8px;padding:6px 10px;font-size:12.5px;font-family:inherit;resize:vertical;outline:none;"
+          onfocus="this.style.borderColor='#4a7fc1'" onblur="this.style.borderColor='#d0dcea'"
+        >${r.reason||''}</textarea>
+      </td>
+    </tr>`).join('');
+    window._ord_group_key=KEY;
+    window._ord_group_base=BASE;
+  }).catch(e=>{
+    document.getElementById('ord-group-modal').style.display='flex';
+    document.getElementById('ord-group-title').textContent='오류: '+e.message;
+  });
+})();
+
+async function saveOrdGroupReasons(){
+  const KEY=window._ord_group_key;
+  const BASE=window._ord_group_base;
+  if(!KEY){alert('키 정보 없음');return;}
+  const tas=document.querySelectorAll('#ord-group-tbody textarea[data-id]');
+  const updates=[];
+  tas.forEach(ta=>{const r=ta.value.trim();if(r) updates.push({id:ta.dataset.id,reason:r});});
+  if(!updates.length){alert('입력된 사유가 없습니다.');return;}
+  const btn=document.querySelector('#ord-group-modal button[onclick*="saveOrdGroup"]');
+  if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+  try{
+    await Promise.all(updates.map(({id,reason})=>
+      fetch(`${BASE}/rest/v1/orders?id=eq.${id}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY,'Prefer':'return=minimal'},
+        body:JSON.stringify({reason})
+      })
+    ));
+    document.getElementById('ord-group-done').style.display='block';
+    if(btn){btn.textContent='✔ 저장됨';}
+  }catch(e){
+    alert('오류: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='💾 전체 저장';}
+  }
+}
+</script>
+</body>
 <div id="reason-modal" style="display:none;position:fixed;inset:0;background:rgba(30,50,80,0.55);z-index:9999;display:none;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:20px;padding:36px 32px;width:min(520px,95vw);box-shadow:0 20px 60px rgba(0,0,0,0.25);">
     <div style="font-size:18px;font-weight:800;color:#1a2a3a;margin-bottom:6px;">📝 사유 입력</div>
