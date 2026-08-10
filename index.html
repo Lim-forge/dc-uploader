@@ -850,7 +850,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
           <table>
             <thead><tr>
               <th>수주자</th><th>수주일</th><th>수주처</th><th>품명코드</th>
-              <th>품명</th><th style="text-align:right">수주량</th>
+              <th>품명</th><th style="text-align:right">수주량</th><th style="text-align:right">수주단가</th>
               <th>제조업체</th><th>발주처</th><th style="text-align:right">발주단가</th>
               <th style="text-align:right">마진율</th><th>사유</th>
             </tr></thead>
@@ -901,14 +901,14 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
       </div>
       <div class="bulk-upload-bar" id="ord-bulk-bar" style="display:none;">
         <span class="bulk-info" id="ord-bulk-info"></span>
-        <button class="btn btn-primary" onclick="bulkUploadOrd()" id="ord-bulk-btn">📤 미업로드 일괄 업로드</button>
+        <button class="btn btn-primary" onclick="showOrdBulkUploadModal()" id="ord-bulk-btn">📤 미업로드 일괄 업로드</button>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
             <th style="width:60px">수주자</th><th style="width:78px">수주일</th>
             <th style="min-width:160px">수주처</th><th style="width:88px">품명코드</th>
-            <th style="min-width:200px">품명</th><th style="text-align:right;width:38px">수주량</th>
+            <th style="min-width:200px">품명</th><th style="text-align:right;width:38px">수주량</th><th style="text-align:right;width:85px">수주단가</th>
             <th style="width:100px">제조업체</th><th style="width:130px">발주처</th>
             <th style="text-align:right;width:85px">발주단가</th>
             <th style="text-align:right;width:48px">마진율</th>
@@ -2473,6 +2473,7 @@ function ordParseAndRender(file) {
             <td class="td-cat">${r.item_code||'—'}</td>
             <td class="td-sub">${r.item_name||'—'}</td>
             <td class="td-num">${ordFmtNum(r.order_qty)}</td>
+            <td class="td-num">${ordFmtNum(r.order_price)}</td>
             <td class="td-sub">${r.maker||'—'}</td>
             <td class="td-sub">${r.po_vendor||'—'}</td>
             <td class="td-num">${ordFmtNum(r.po_price)}</td>
@@ -2553,6 +2554,7 @@ async function doSaveOrd() {
       orderer:r.orderer, order_date:ordFmtDate(r.order_date),
       customer_name:r.customer_name, item_code:r.item_code,
       item_name:r.item_name, order_qty:r.order_qty||null,
+      order_price:r.order_price||null,
       maker:r.maker, po_vendor:r.po_vendor,
       po_price:r.po_price||null, margin_rate:r.margin_rate||null,
       reason:null
@@ -2655,13 +2657,31 @@ async function uploadOrd() {
   showToast('먼저 💾 저장 후 히스토리 탭에서 이슈모니터 업로드하세요.', 'warn');
 }
 
-// 히스토리 탭 일괄 업로드
+// 히스토리 탭 일괄 업로드 - 월 선택 후 실행
+function showOrdBulkUploadModal() {
+  const bar = document.getElementById('ord-bulk-bar');
+  if(!bar._data || !bar._data.length){ alert('업로드할 데이터가 없습니다.'); return; }
+  const now = new Date();
+  // 필터에서 년/월 선택돼 있으면 그걸로 기본값 세팅
+  const yr = document.getElementById('ord-h-year')?.value;
+  const mo = document.getElementById('ord-h-month')?.value;
+  const defaultYm = (yr && yr !== '--년도--' && mo)
+    ? `${yr}-${mo.padStart(2,'0')}`
+    : `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('ord-bulk-month-input').value = defaultYm;
+  document.getElementById('ord-bulk-month-modal').style.display = 'flex';
+}
+
 async function bulkUploadOrd() {
   const bar  = document.getElementById('ord-bulk-bar');
   const btn  = document.getElementById('ord-bulk-btn');
   const info = document.getElementById('ord-bulk-info');
   const rows = bar._data;
   if(!rows || !rows.length){ alert('업로드할 데이터가 없습니다.'); return; }
+
+  const ym = document.getElementById('ord-bulk-month-input').value;
+  if(!ym){ alert('월을 선택해주세요.'); return; }
+  document.getElementById('ord-bulk-month-modal').style.display = 'none';
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>업로드 중...';
@@ -2839,6 +2859,7 @@ async function loadOrdHistory() {
           <td style="font-size:11px;color:#5a7a9a;white-space:nowrap">${r.item_code||'—'}</td>
           <td style="font-size:12px">${(r.item_name && r.item_name !== r.item_code) ? r.item_name : '—'}</td>
           <td style="text-align:right;font-size:12px">${r.order_qty||'—'}</td>
+          <td style="text-align:right;white-space:nowrap;font-size:12px">${r.order_price?Number(r.order_price).toLocaleString():'—'}</td>
           <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.maker||''}">${r.maker||'—'}</td>
           <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.po_vendor||''}">${r.po_vendor||'—'}</td>
           <td style="text-align:right;white-space:nowrap;font-size:12px">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
@@ -2866,9 +2887,9 @@ async function loadOrdHistory() {
           </td>
           <td style="font-size:11px;color:var(--text-muted);white-space:nowrap">${(r.created_at||'').slice(0,10)}</td>
           <td style="font-size:11px;white-space:nowrap;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}">${r.reason_at?(r.reason_at.slice(0,10)):'미확인'}</td>
-          <td>${r.is_uploaded
-            ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);">✅ 완료</span>'
-            : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);">⬜ 미업로드</span>'
+          <td style="white-space:nowrap;">${r.is_uploaded
+            ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>'
+            : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미업로드</span>'
           }</td>
           <td style="text-align:center;"><button onclick="deleteOrdRow('${r.id}')" title="삭제" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:#c04040;">🗑️</button></td>
         </tr>`;
@@ -3064,6 +3085,21 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
         style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
       <button onclick="doSaveOrd()"
         style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#2e9e6e,#1a7a52);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 수주건 이슈모니터 업로드 월 선택 모달 ══ -->
+<div id="ord-bulk-month-modal" style="display:none;position:fixed;inset:0;background:rgba(30,50,80,.55);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+    <div style="font-size:17px;font-weight:800;color:#1a2a3a;margin-bottom:6px;">📅 이슈모니터 업로드 월 선택</div>
+    <div style="font-size:12.5px;color:#4a6a8a;margin-bottom:20px;">이슈모니터에 등록할 기준 월을 선택하세요</div>
+    <input type="month" id="ord-bulk-month-input" style="width:100%;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 14px;font-size:15px;outline:none;text-align:center;">
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="document.getElementById('ord-bulk-month-modal').style.display='none'"
+        style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
+      <button onclick="bulkUploadOrd()"
+        style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#9356db,#6d3ab8);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">📤 업로드</button>
     </div>
   </div>
 </div>
