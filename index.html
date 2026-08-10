@@ -2950,12 +2950,29 @@ function toggleOrdEdit(id) {
 async function deleteOrdRow(id) {
   if(!confirm('⚠️ 이 수주건을 삭제할까요?\n\n삭제하면 되돌릴 수 없으며,\n이슈모니터에서도 함께 사라집니다.')) return;
   try {
-    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders?id=eq.${id}`, {
+    // 1. 업로더DB에서 row 정보 가져오기 (이슈모니터 삭제용 key 확인)
+    const getRes = await fetch(`${UPLOADER_URL}/rest/v1/orders?id=eq.${id}&select=orderer,order_date,item_code`, {
+      headers:{'apikey':UPLOADER_KEY,'Authorization':'Bearer '+UPLOADER_KEY}
+    });
+    const rows = await getRes.json();
+
+    // 2. 업로더DB 삭제
+    const res = await fetch(`${UPLOADER_URL}/rest/v1/orders?id=eq.${id}`, {
       method:'DELETE',
-      headers:{'apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY}
+      headers:{'apikey':UPLOADER_KEY,'Authorization':'Bearer '+UPLOADER_KEY}
     });
     if(!res.ok) throw new Error(await res.text());
-    showToast('🗑️ 삭제 완료','success');
+
+    // 3. 이슈모니터DB도 동일 건 삭제 (orderer+order_date+item_code 매칭)
+    if(rows && rows.length) {
+      const r = rows[0];
+      await fetch(`${ISSUE_URL}/rest/v1/orders?orderer=eq.${encodeURIComponent(r.orderer)}&order_date=eq.${r.order_date}&item_code=eq.${encodeURIComponent(r.item_code)}`, {
+        method:'DELETE',
+        headers:{'apikey':ISSUE_KEY,'Authorization':'Bearer '+ISSUE_KEY,'Prefer':'return=minimal'}
+      });
+    }
+
+    showToast('🗑️ 삭제 완료 — 이슈모니터에도 반영됐습니다','success');
     setTimeout(()=>loadOrdHistory(), 400);
   } catch(e){ showToast('삭제 오류: '+e.message,'error'); }
 }
@@ -2992,15 +3009,23 @@ async function doOrdMonthDelete() {
   const btn = document.getElementById('ord-del-confirm-btn');
   btn.disabled = true; btn.textContent = '삭제 중...';
   try {
-    // created_at 기준 해당 월만 정확히 삭제
+    // 1. 업로더DB 삭제
     const res = await fetch(
-      `${ORD_SUPA_URL}/rest/v1/orders?created_at=gte.${ym}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`, {
+      `${UPLOADER_URL}/rest/v1/orders?created_at=gte.${ym}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`, {
       method:'DELETE',
-      headers:{'apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'}
+      headers:{'apikey':UPLOADER_KEY,'Authorization':'Bearer '+UPLOADER_KEY,'Prefer':'return=minimal'}
     });
     if(!res.ok) throw new Error(await res.text());
+
+    // 2. 이슈모니터DB도 삭제 (order_date 기준)
+    await fetch(
+      `${ISSUE_URL}/rest/v1/orders?order_date=gte.${ym}-01&order_date=lt.${nm}-01`, {
+      method:'DELETE',
+      headers:{'apikey':ISSUE_KEY,'Authorization':'Bearer '+ISSUE_KEY,'Prefer':'return=minimal'}
+    });
+
     document.getElementById('ord-delete-modal').style.display = 'none';
-    showToast(`🗑️ ${ym} 수주건 전체 삭제 완료 — 이슈모니터에도 반영됩니다`,'success');
+    showToast(`🗑️ ${ym} 수주건 전체 삭제 완료 — 이슈모니터에도 반영됐습니다`,'success');
     setTimeout(()=>loadOrdHistory(), 500);
   } catch(e){
     showToast('삭제 오류: '+e.message,'error');
