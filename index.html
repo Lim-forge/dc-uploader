@@ -1110,6 +1110,8 @@ function switchMain(tab) {
     const el = document.getElementById('panel-'+t);
     if(el) el.classList.toggle('active', t===tab);
   });
+  // 마지막 탭 기억 (새로고침 복원용)
+  try { sessionStorage.setItem('lastTab', tab); } catch(e){}
   // 히스토리 탭 초기화
   if(tab==='low') initYears('low-h-year');
   else if(tab==='return') initYears('ret-h-year');
@@ -2009,7 +2011,14 @@ function initManualTables() {
   if(!document.querySelector('#low-manual-tbody tr')) addLowManualRow();
   if(!document.querySelector('#ret-manual-tbody tr')) addRetManualRow();
 }
-document.addEventListener('DOMContentLoaded', initManualTables);
+document.addEventListener('DOMContentLoaded', () => {
+  initManualTables();
+  // 새로고침 후 마지막 탭 복원
+  try {
+    const last = sessionStorage.getItem('lastTab');
+    if(last) setTimeout(()=>switchMain(last), 100);
+  } catch(e){}
+});
 
 
 // ══════════════════════════════════════════
@@ -2564,6 +2573,8 @@ async function doSaveOrd() {
     }).join('\n\n');
     const cpBtn=document.getElementById('ord-copy-all-btn');
     if(cpBtn){cpBtn.style.display='';cpBtn._links=allLinks;}
+    // 저장 완료 후 히스토리 탭으로 자동 전환
+    setTimeout(()=>{ switchSub('order','history'); }, 900);
   } catch(e){
     showToast('저장 오류: '+e.message,'error');
     btn.disabled=false; btn.textContent='💾 저장';
@@ -2645,7 +2656,23 @@ async function loadOrdHistory() {
   try {
     const res = await fetch(url, {headers:{'apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY}});
     const rows = await res.json();
-    const filtered = keyword ? rows.filter(r=>((r.customer_name||'')+(r.item_name||'')+(r.orderer||'')).toLowerCase().includes(keyword.toLowerCase())) : rows;
+
+    // ── 제외 규칙 적용 (파싱 필터와 동일) ──
+    const H_EXCL_ORDERER = ['이은정','임영재','서재란','이나연','김정대'];
+    const H_EXCL_CHANNEL = ['업자','대리점'];
+    const H_EXCL_KEYWORD = ['폐기','취소','반품'];
+    const validRows = rows.filter(r=>{
+      if(H_EXCL_ORDERER.some(n=>(r.orderer||'').includes(n))) return false;
+      if(H_EXCL_CHANNEL.some(c=>(r.orderer||'').includes(c))) return false;
+      if(H_EXCL_CHANNEL.some(c=>(r.customer_name||'').includes(c))) return false;
+      const txt=(r.item_name||'')+'|'+(r.reason||'');
+      if(H_EXCL_KEYWORD.some(k=>txt.includes(k))) return false;
+      return true;
+    });
+
+    const filtered = keyword
+      ? validRows.filter(r=>((r.customer_name||'')+(r.item_name||'')+(r.orderer||'')).toLowerCase().includes(keyword.toLowerCase()))
+      : validRows;
     const tbody = document.getElementById('ord-h-tbody');
     if(!tbody) return;
     const kpiEl = document.getElementById('ord-h-kpi');
