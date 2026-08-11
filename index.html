@@ -1536,11 +1536,11 @@ function renderLowStats(data){
   const info = document.getElementById('low-bulk-info');
   if(notUploaded.length > 0){
     bar.style.display = 'flex';
-    const yr2 = document.getElementById('ret-h-year')?.value;
-    const mo2 = document.getElementById('ret-h-month')?.value;
+    const yr2 = document.getElementById('low-h-year')?.value;
+    const mo2 = document.getElementById('low-h-month')?.value;
     const periodTxt2 = yr2 && mo2 ? `${yr2}-${String(mo2).padStart(2,'0')} ` : yr2 ? `${yr2}년 ` : '';
     info.innerHTML = `${periodTxt2}미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
-    document.getElementById('ret-bulk-btn').textContent = `📤 ${periodTxt2}미업로드 ${notUploaded.length}건 일괄 업로드`;
+    document.getElementById('low-bulk-btn').textContent = `📤 ${periodTxt2}미업로드 ${notUploaded.length}건 일괄 업로드`;
     bar._ids = notUploaded.map(r=>r.id);
     bar._data = notUploaded;
   } else {
