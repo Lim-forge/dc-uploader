@@ -574,7 +574,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
 <!-- 탑바 -->
 <div class="hero">
   <div class="hero-card">
-    <h1>DreamCell 업로더</h1>
+    <h1 onclick="goBack()" style="cursor:pointer;" title="메인 화면으로">DreamCell 업로더</h1>
     <p class="hero-credit"><img class="hero-avatar" src="./assets/img/image_01.jpg" alt="LYJ"><span>개발</span>Lim Young Jae</p>
   </div>
 </div>
@@ -688,7 +688,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
     </svg>
 
     <!-- ── 중앙 DC 허브 ── -->
-    <div class="hub-dc">
+    <div class="hub-dc" onclick="window.open('https://dreamcell-issue-monitor.vercel.app/','_blank')" style="cursor:pointer;" title="이슈모니터 바로가기">
       <img src="./assets/img/image_02.png" alt="DC허브" style="width:100%;height:100%;object-fit:contain;">
     </div>
 
@@ -1322,14 +1322,18 @@ async function parseLowPdf(text, file){
       if(nameM) current.품명_parts.push(nameM[0].trim());
     } else if(current){
       const t=line.trim();
-      // 숫자 보완 (입고가/출고가/마진율이 다음 줄에 있는 경우)
+      // 숫자 보완 (입고가/출고가가 다음 줄에 있는 경우)
       if(current._pendingNums){
         const nums2=[...line.matchAll(/\b(\d[\d,]{2,})\b/g)].map(m=>parseInt(m[1].replace(/,/g,'')));
-        const pctM2=line.match(/([\d.]+)\s*%/);
         if(nums2.length>=2){ current.입고가=nums2[0]; current.출고가=nums2[1]; current._pendingNums=false; }
         else if(nums2.length===1 && current.입고가===null){ current.입고가=nums2[0]; }
         else if(nums2.length===1 && current.입고가!==null){ current.출고가=nums2[0]; current._pendingNums=false; }
-        if(pctM2 && !current.마진율){ current.마진율=parseFloat(pctM2[1]); }
+      }
+      // 마진율(%) 보완 - 입고가/출고가와 별개로, 아직 못 찾았으면 계속 찾음
+      // (입고가/출고가는 첫 줄에 있고 마진율만 다음 줄에 따로 오는 레이아웃 대응)
+      if(current.마진율==null){
+        const pctM2=line.match(/([\d.]+)\s*%/);
+        if(pctM2) current.마진율=parseFloat(pctM2[1]);
       }
       if(t&&/[A-Za-z]/.test(t)&&!t.match(/^(Dreamcell|APR-)/)) current.품명_parts.push(t);
     }
@@ -1415,9 +1419,14 @@ function rebuildLow(){
   lowQueue.filter(q=>q.status==='done'&&q.result).forEach(item=>{
     const r=item.result;
     r.products.forEach((p,pi)=>{
+      // 마진율: PDF에서 %를 못 찾았으면 입고가/출고가로 직접 계산 (fallback)
+      let mg=p.마진율;
+      if(mg==null && p.출고가 && p.입고가!=null){
+        mg=Math.round(((p.출고가-p.입고가)/p.출고가*100)*10)/10;
+      }
       lowRows.push({_id:`${item.id}-${pi}`,ship_date:parseDate(r.shipDate),customer_name:r.customer,rep:r.drafter,
         catalog_no:p.카달로그번호,item_name:p.item_name||p.품명,brand:p.브랜드,cost_price:p.입고가,sale_price:p.출고가,
-        margin_rate:p.마진율,reason:r.sayu,doc_no:r.docNo});
+        margin_rate:mg,reason:r.sayu,doc_no:r.docNo});
     });
   });
   lowRows.sort((a,b)=>new Date(a.ship_date)-new Date(b.ship_date));
