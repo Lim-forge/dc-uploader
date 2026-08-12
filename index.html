@@ -2653,8 +2653,35 @@ async function doSaveOrd() {
     btn.disabled=false; btn.textContent='💾 저장';
   }
 }
+// ── 클립보드 복사 3단계 폴백 (회사 데스크탑에서 Clipboard API가 막혀도 항상 복사되게) ──
+function copyTextSmart(text){
+  return new Promise((resolve)=>{
+    // 1단계: 표준 Clipboard API (보안 컨텍스트 + 권한 필요)
+    if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(()=>resolve(true)).catch(()=>resolve(fallbackCopy(text)));
+    }else{
+      resolve(fallbackCopy(text));
+    }
+  });
+}
+// 2단계: 구형/비보안 컨텍스트용 execCommand 폴백
+function fallbackCopy(text){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.style.position='fixed';ta.style.top='-9999px';ta.style.left='-9999px';
+    document.body.appendChild(ta);
+    ta.focus();ta.select();
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    if(ok) return true;
+  }catch(e){/* 3단계로 폴백 */}
+  // 3단계: 둘 다 실패하면 수동 복사할 수 있게 프롬프트로 노출
+  window.prompt('자동 복사가 지원되지 않는 환경입니다. 아래 내용을 직접 복사(Ctrl+C)해주세요:', text);
+  return false;
+}
 function copyOrdGroupLink(link,name){
-  navigator.clipboard.writeText(link).then(()=>showToast(`🔗 ${name} 링크 복사됨`,'success'));
+  copyTextSmart(link).then(ok=>{ if(ok) showToast(`🔗 ${name} 링크 복사됨`,'success'); });
 }
 async function saveOrd(){showOrdMonthModal();}
 
@@ -2695,16 +2722,16 @@ function renderOrdLinks(savedRows) {
 }
 
 function copyOrdLink(link, orderer, customer) {
-  navigator.clipboard.writeText(link).then(() => {
-    showToast(`🔗 ${orderer} / ${customer} 링크 복사됨`,'success');
+  copyTextSmart(link).then(ok => {
+    if(ok) showToast(`🔗 ${orderer} / ${customer} 링크 복사됨`,'success');
   });
 }
 
 function copyAllOrdLinks() {
   const btn = document.getElementById('ord-copy-all-btn');
   if(!btn || !btn._links) return;
-  navigator.clipboard.writeText(btn._links).then(() => {
-    showToast(`📋 전체 링크 복사됨 — 메일에 붙여넣으세요`,'success');
+  copyTextSmart(btn._links).then(ok => {
+    if(ok) showToast(`📋 전체 링크 복사됨 — 메일에 붙여넣으세요`,'success');
   });
 }
 
