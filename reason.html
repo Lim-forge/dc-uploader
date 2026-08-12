@@ -203,24 +203,41 @@ async function saveAllReasons() {
   btn.disabled = true; btn.textContent = '저장 중...';
   status.textContent = `${updates.length}건 저장 중...`;
 
-  try {
-    let done = 0;
-    for(const {id, reason} of updates) {
-      await fetch(`${SUPA_URL}/rest/v1/orders?id=eq.${id}`, {
+  let done = 0;
+  const failed = [];
+  for(const {id, reason} of updates) {
+    try{
+      const res = await fetch(`${SUPA_URL}/rest/v1/orders?id=eq.${id}`, {
         method:'PATCH',
         headers:{...hdrs,'Content-Type':'application/json','Prefer':'return=minimal'},
         body: JSON.stringify({reason, reason_at: new Date().toISOString()})
       });
+      if(!res.ok){
+        // Supabase가 4xx/5xx로 명시적으로 거부한 경우 (예: RLS 권한 문제)
+        let detail='';
+        try{ detail=await res.text(); }catch(e){}
+        console.error(`저장 실패 id=${id} status=${res.status}`, detail);
+        failed.push({id, status:res.status});
+        continue;
+      }
       done++;
-      status.textContent = `${done}/${updates.length} 저장 중...`;
+    }catch(e){
+      // 네트워크 자체가 끊긴 경우
+      console.error(`저장 실패 id=${id} (네트워크 오류)`, e);
+      failed.push({id, status:'network'});
     }
+    status.textContent = `${done+failed.length}/${updates.length} 처리 중...`;
+  }
+
+  if(failed.length===0){
     btn.textContent = '✔ 저장 완료';
     status.textContent = `총 ${done}건 저장되었습니다.`;
     document.getElementById('done-box').style.display = 'block';
-  } catch(e) {
+  }else{
     btn.disabled = false;
-    btn.textContent = '💾 전체 저장';
-    status.textContent = '오류: ' + e.message;
+    btn.textContent = '💾 전체 저장 (재시도)';
+    status.textContent = `⚠ ${done}건 성공, ${failed.length}건 저장 실패 — 다시 눌러 재시도하거나 관리자에게 문의하세요.`;
+    status.style.color = '#d95f5f';
   }
 }
 
