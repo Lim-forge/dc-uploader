@@ -1706,7 +1706,7 @@ async function parseRetPdf(text, file){
   const 합계    =수량*단가;  // kept for local calc
   return{doc_no:docNo,rep:drafter,return_date:parseDate(returnDM?returnDM[1]:null),customer_name:customerM?customerM[1]:'',
     code:codeM2?codeM2[1]:'',item_name:품명,qty:수량,supplier:buyerM?buyerM[1]:'',
-    reason:sayuRaw,process:'반품',unit_price:단가,total:합계};
+    reason:sayuRaw,process:'',unit_price:단가,total:합계};
 }
 
 document.getElementById('ret-dropzone').addEventListener('dragover',e=>{e.preventDefault();e.currentTarget.classList.add('drag-over');});
@@ -1753,7 +1753,13 @@ function rebuildRet(){
       <td class="td-sub">${esc(r.supplier||'-')}</td>
       <td class="td-sub">${esc(r.customer_name||'-')}</td>
       <td class="sayu-cell"><textarea class="sayu-input" rows="2" oninput="retRows[${i}].reason=this.value">${esc(r.reason)}</textarea></td>
-      <td><span style="background:var(--warn-dim);color:var(--warn);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">${esc(r.process)}</span></td>
+      <td><select onchange="retRows[${i}].process=this.value" style="background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:600;">
+        <option value="" ${!r.process?'selected':''}>선택</option>
+        <option value="반품완료" ${r.process==='반품완료'?'selected':''}>반품완료</option>
+        <option value="재고사용" ${r.process==='재고사용'?'selected':''}>재고사용</option>
+        <option value="악성재고" ${r.process==='악성재고'?'selected':''}>악성재고</option>
+        <option value="반품처리중" ${r.process==='반품처리중'?'selected':''}>반품처리중</option>
+      </select></td>
       <td class="td-num">${fmt(r.unit_price)}</td>
       <td class="td-num" style="font-weight:700;color:var(--accent2)">${fmt(r.total)}</td>
     </tr>`).join('');
@@ -1763,6 +1769,8 @@ function rebuildRet(){
 
 async function saveRet(){
   if(!retRows.length) return;
+  const unselected = retRows.filter(r=>!r.process).length;
+  if(unselected>0){ alert(`처리내용을 선택하지 않은 행이 ${unselected}건 있습니다. 모두 선택해주세요.`); return; }
   const btn=document.getElementById('ret-save-btn');
   const res=document.getElementById('ret-result');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>저장 중...';
@@ -1822,7 +1830,7 @@ async function loadRetHistory(){
       <td>${esc(r.supplier||'-')}</td>
       <td>${esc(r.customer_name||'-')}</td>
       <td style="max-width:220px;white-space:normal;word-break:break-word;">${esc(r.reason||'-')}</td>
-      <td><span style="background:var(--warn-dim);color:var(--warn);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">${esc(r.process||'-')}</span></td>
+      <td>${(()=>{const p=r.process||'-';const c={반품완료:{bg:'rgba(56,184,126,0.12)',fg:'#38b87e'},재고사용:{bg:'rgba(74,127,193,0.12)',fg:'#4a7fc1'},악성재고:{bg:'rgba(220,80,80,0.12)',fg:'#d95f5f'},반품처리중:{bg:'var(--warn-dim)',fg:'var(--warn)'}}[p]||{bg:'var(--surface2)',fg:'var(--text-muted)'};return `<span style="background:${c.bg};color:${c.fg};font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">${esc(p)}</span>`;})()}</td>
       <td class="td-num">${fmt(r.unit_price)}</td>
       <td class="td-num" style="font-weight:700;color:var(--accent2)">${fmt(r.total)}</td>
       <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
