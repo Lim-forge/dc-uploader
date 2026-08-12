@@ -862,7 +862,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <table>
           <thead><tr>
             <th>출고일</th><th>거래처</th><th>담당자</th><th>카달로그번호</th>
-            <th>품명</th><th>브랜드</th><th>입고가</th><th>출고가</th><th>마진율</th><th>사유</th><th>저장일</th><th>업로드</th><th>액션</th>
+            <th>품명</th><th>브랜드</th><th>입고가</th><th>출고가</th><th>마진율</th><th style="max-width:220px;">사유</th><th>저장일</th><th>업로드</th><th>액션</th>
           </tr></thead>
           <tbody id="low-h-tbody"></tbody>
         </table>
@@ -1119,7 +1119,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <table>
           <thead><tr>
             <th>반품일</th><th>담당자</th><th>코드</th><th>품명</th>
-            <th>수량</th><th>매입처</th><th>수주처</th><th>사유</th><th>처리내용</th><th>단가</th><th>합계</th><th>저장일</th><th>업로드</th><th>액션</th>
+            <th>수량</th><th>매입처</th><th>수주처</th><th style="max-width:220px;">사유</th><th>처리내용</th><th>단가</th><th>합계</th><th>저장일</th><th>업로드</th><th>액션</th>
           </tr></thead>
           <tbody id="ret-h-tbody"></tbody>
         </table>
@@ -1550,7 +1550,7 @@ async function loadLowHistory(){
       <td class="td-num">${fmt(r.cost_price)}</td>
       <td class="td-num">${fmt(r.sale_price)}</td>
       <td class="td-margin">${r.margin_rate!=null?r.margin_rate+'%':'-'}</td>
-      <td>${esc(r.reason||'-')}</td>
+      <td style="max-width:220px;white-space:normal;word-break:break-word;">${esc(r.reason||'-')}</td>
       <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
       <td>${r.is_uploaded
         ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);">✅ 완료</span>'
@@ -1797,7 +1797,7 @@ async function loadRetHistory(){
       <td class="td-num">${fmt(r.qty)}</td>
       <td>${esc(r.supplier||'-')}</td>
       <td>${esc(r.customer_name||'-')}</td>
-      <td>${esc(r.reason||'-')}</td>
+      <td style="max-width:220px;white-space:normal;word-break:break-word;">${esc(r.reason||'-')}</td>
       <td><span style="background:var(--warn-dim);color:var(--warn);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">${esc(r.process||'-')}</span></td>
       <td class="td-num">${fmt(r.unit_price)}</td>
       <td class="td-num" style="font-weight:700;color:var(--accent2)">${fmt(r.total)}</td>
@@ -2171,30 +2171,31 @@ async function uploadHistoryRow(tab, id) {
 }
 
 // 히스토리 행 수정 (인라인) - 더블클릭
+// 탭별 편집가능 컬럼 매핑 (td 인덱스 → {실제DB필드명, 입력타입}) — 'reason' 타입은 원본 읽기전용 미리보기 + textarea로 특별 처리
+const HIST_FIELD_MAP = {
+  low: {0:{f:'ship_date',t:'date'},1:{f:'customer_name',t:'text'},2:{f:'rep',t:'text'},3:{f:'catalog_no',t:'text'},
+        4:{f:'item_name',t:'text'},5:{f:'brand',t:'text'},6:{f:'cost_price',t:'number'},7:{f:'sale_price',t:'number'},
+        8:{f:'margin_rate',t:'number'},9:{f:'reason',t:'reason'}},
+  ret: {0:{f:'return_date',t:'date'},1:{f:'rep',t:'text'},2:{f:'code',t:'text'},3:{f:'item_name',t:'text'},
+        4:{f:'qty',t:'number'},5:{f:'supplier',t:'text'},6:{f:'customer_name',t:'text'},7:{f:'reason',t:'reason'},
+        9:{f:'unit_price',t:'number'},10:{f:'total',t:'number'}}
+};
+
 function editHistoryRow(tab, id, btn) {
   const tr = btn.closest('tr');
-  const isLow = tab === 'low';
-
-  // 이미 편집 중이면 저장
-  if(tr.dataset.editing === 'true') {
-    saveEditHistoryRow(tab, id, tr);
-    return;
-  }
-
+  const map = HIST_FIELD_MAP[tab];
   tr.dataset.editing = 'true';
-  btn.textContent = '💾';
-  btn.title = '저장';
 
-  // 각 td에서 현재 텍스트값 읽어서 input으로 교체
+  // 원본 셀 내용을 기억해뒀다가 취소시 그대로 복구
+  tr._origCells = [];
   const tds = [...tr.querySelectorAll('td')];
-  const editableCols = isLow
-    ? {0:'date',1:'text',2:'text',3:'text',4:'text',5:'text',6:'number',7:'number',8:'number',9:'text'}
-    : {0:'date',1:'text',2:'text',3:'text',4:'number',5:'text',6:'text',7:'text',9:'number',10:'number'};
 
-  Object.entries(editableCols).forEach(([i, type]) => {
+  Object.entries(map).forEach(([i, def]) => {
     const td = tds[parseInt(i)];
     if(!td) return;
-    // 기존 텍스트 추출 (버튼/스팬 제외)
+    tr._origCells.push({td, html: td.innerHTML});
+
+    // 기존 텍스트값 추출
     let val = '';
     const span = td.querySelector('span');
     const inp = td.querySelector('input');
@@ -2202,44 +2203,52 @@ function editHistoryRow(tab, id, btn) {
     else if(span) { val = span.textContent.trim(); }
     else { val = td.textContent.trim(); }
     val = val.replace(/%$/, '').replace(/,/g,'').trim();
-    td.innerHTML = `<input style="width:100%;min-width:60px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px;" type="${type}" value="${val}">`;
+    if(val === '-') val = '';
+
+    if(def.t === 'reason'){
+      // 사유: 원본을 읽기전용으로 위에 보여주고, 그 아래 별도 textarea로 축약/재작성 가능하게
+      td.innerHTML = `
+        <div style="font-size:11px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;margin-bottom:5px;max-height:90px;overflow-y:auto;white-space:pre-wrap;line-height:1.5;">${esc(val)||'(원본 사유 없음)'}</div>
+        <textarea data-field="reason" rows="3" style="width:100%;min-width:160px;background:var(--surface2);border:1.5px solid var(--accent);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;">${esc(val)}</textarea>`;
+    }else{
+      td.innerHTML = `<input data-field="${def.f}" style="width:100%;min-width:60px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px;box-sizing:border-box;" type="${def.t}" value="${esc(val)}">`;
+    }
   });
+
+  // 액션 버튼: ✏️/🗑️ → 💾 저장 / ✕ 취소 로 교체 (취소하면 저장 없이 원복)
+  const actionTd = btn.closest('td');
+  actionTd.dataset.origHtml = actionTd.innerHTML;
+  actionTd.innerHTML = `
+    <button onclick="saveEditHistoryRow('${tab}','${id}',this)" title="저장" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--success);">💾</button>
+    <button onclick="cancelEditHistoryRow('${tab}',this)" title="취소" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">✕</button>`;
 }
 
-async function saveEditHistoryRow(tab, id, tr) {
-  const isLow = tab === 'low';
-  const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
-  const cells = [...tr.querySelectorAll('td')];
-  const inputs = tr.querySelectorAll('input');
-
-  let update = {};
-  if(isLow){
-    update = {
-      ship_date:     inputs[0]?.value||null,
-      customer_name: inputs[1]?.value.trim()||null,
-      rep:           inputs[2]?.value.trim()||null,
-      catalog_no:    inputs[3]?.value.trim()||null,
-      item_name:     inputs[4]?.value.trim()||null,
-      brand:         inputs[5]?.value.trim()||null,
-      cost_price:    parseFloat(inputs[6]?.value)||null,
-      sale_price:    parseFloat(inputs[7]?.value)||null,
-      margin_rate:   parseFloat(inputs[8]?.value)||null,
-      reason:        inputs[9]?.value.trim()||null,
-    };
-  } else {
-    update = {
-      return_date:   inputs[0]?.value||null,
-      rep:           inputs[1]?.value.trim()||null,
-      code:          inputs[2]?.value.trim()||null,
-      item_name:     inputs[3]?.value.trim()||null,
-      qty:           parseFloat(inputs[4]?.value)||null,
-      supplier:      inputs[5]?.value.trim()||null,
-      customer_name: inputs[6]?.value.trim()||null,
-      reason:        inputs[7]?.value.trim()||null,
-      unit_price:    parseFloat(inputs[8]?.value)||null,
-      total:         parseFloat(inputs[9]?.value)||null,
-    };
+// 편집 취소: 저장 없이 원래 셀 내용으로 복구
+function cancelEditHistoryRow(tab, btn){
+  const tr = btn.closest('tr');
+  if(tr._origCells){
+    tr._origCells.forEach(({td, html}) => { td.innerHTML = html; });
+    tr._origCells = null;
   }
+  const actionTd = btn.closest('td');
+  if(actionTd.dataset.origHtml){ actionTd.innerHTML = actionTd.dataset.origHtml; delete actionTd.dataset.origHtml; }
+  tr.dataset.editing = 'false';
+}
+
+async function saveEditHistoryRow(tab, id, btn) {
+  const tr = btn.closest('tr');
+  const tbl = tab === 'low' ? 'low_margin_shipments' : 'return_shipments';
+  const map = HIST_FIELD_MAP[tab];
+
+  const update = {};
+  Object.values(map).forEach(def => {
+    const el = tr.querySelector(`[data-field="${def.f}"]`);
+    if(!el) return;
+    const raw = el.value;
+    update[def.f] = def.t === 'number'
+      ? (raw !== '' ? parseFloat(raw) : null)
+      : (raw.trim() || null);
+  });
 
   const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
     method:'PATCH',
@@ -2249,7 +2258,7 @@ async function saveEditHistoryRow(tab, id, tr) {
 
   if(resp.ok){
     setStatus('✏️ 수정 완료!','','success');
-    if(isLow) loadLowHistory(); else loadRetHistory();
+    if(tab==='low') loadLowHistory(); else loadRetHistory();
   } else {
     alert('❌ 수정 실패');
   }
