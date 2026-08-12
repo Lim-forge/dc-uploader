@@ -1780,7 +1780,11 @@ async function saveRet(){
       unit_price:r.unit_price,total:r.total,doc_no:r.doc_no}));
     const resp=await sbFetch(UPLOADER_URL,UPLOADER_KEY,'/rest/v1/return_shipments','POST',payload);
     if(resp.ok||resp.status===201){res.innerHTML='✅ 저장 완료!';res.className='action-result success';}
-    else{const e=await resp.json().catch(()=>({}));throw new Error(e.message||`HTTP ${resp.status}`);}
+    else{
+      const e=await resp.json().catch(()=>({}));
+      if(e.code==='23505'){ throw new Error('이미 저장된 문서입니다 (같은 문서번호+제품코드 조합이 이미 있어요). 중복 저장을 막기 위한 정상 동작이에요.'); }
+      throw new Error(e.message||`HTTP ${resp.status}`);
+    }
   }catch(e){res.textContent='❌ '+e.message;res.className='action-result error';}
   finally{btn.disabled=false;btn.innerHTML='💾 저장';}
 }
