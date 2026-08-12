@@ -533,6 +533,10 @@ th{padding:10px 13px;color:var(--text-sub);font-weight:700;font-size:11px;
   text-transform:uppercase;letter-spacing:0.06em;text-align:left;white-space:nowrap;}
 td{padding:9px 13px;border-bottom:1px solid rgba(200,215,235,0.3);color:var(--text);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
+/* 가로스크롤 없이 한 화면에 맞추기 위한 전용 컴팩트 테이블 (10%미만 수주건 히스토리) */
+.ord-h-table, .ord-h-table th, .ord-h-table td{box-sizing:border-box;}
+.ord-h-table th, .ord-h-table td{padding:6px 6px;font-size:11px;}
+.ord-h-table td{white-space:normal;word-break:break-word;overflow-wrap:break-word;}
 tbody tr{transition:background 0.1s;}
 tbody tr:hover td{background:rgba(255,255,255,0.5);}
 /* 통계 카드 */
@@ -933,34 +937,31 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <input type="text" id="ord-h-keyword" class="filter-input" placeholder="수주처/품명 검색" oninput="loadOrdHistory()" style="min-width:160px;">
         <button class="btn btn-ghost" onclick="loadOrdHistory()">🔍 조회</button>
         <button class="btn btn-ghost" onclick="showOrdMakerReasonModal()" style="border-color:#d8c8f0;color:#7c5cc4;">🏭 제조업체별 일괄 사유입력</button>
+        <button class="btn btn-ghost" onclick="showOrdBulkUploadModal()" style="border-color:#a8d0c0;color:#2e9e6e;font-weight:700;">📤 이슈모니터 업로드 <span id="ord-bulk-count" style="opacity:.7;font-weight:600;"></span></button>
         <button onclick="showOrdDeleteModal()" style="margin-left:auto;padding:6px 14px;font-size:12px;background:#fff;border:1.5px solid #e0a0a0;color:#c04040;border-radius:9px;font-weight:700;cursor:pointer;">🗑️ 선택 월 삭제</button>
       </div>
       <div class="stats-row" id="ord-h-kpi" style="display:none;margin-bottom:16px;">
         <div class="stat-card"><div class="sv blue" id="ord-h-total">—</div><div class="sk">전체</div></div>
         <div class="stat-card"><div class="sv red"  id="ord-h-avg">—</div><div class="sk">평균 마진율</div></div>
-        <div class="stat-card"><div class="sv" id="ord-h-nu">—</div><div class="sk">미업로드</div></div>
-      </div>
-      <div class="bulk-upload-bar" id="ord-bulk-bar" style="display:none;">
-        <span class="bulk-info" id="ord-bulk-info"></span>
-        <button class="btn btn-primary" onclick="showOrdBulkUploadModal()" id="ord-bulk-btn">📤 미업로드 일괄 업로드</button>
+        <div class="stat-card"><div class="sv" id="ord-h-uc">—</div><div class="sk">누적 업로드 횟수</div></div>
       </div>
       <div class="table-wrap">
-        <table style="min-width:1560px;">
+        <table class="ord-h-table" style="table-layout:fixed;">
           <thead><tr style="background:rgba(240,245,255,0.8);">
-            <th style="width:60px">수주자</th><th style="width:78px">수주일</th>
-            <th style="min-width:160px">수주처</th><th style="width:88px">품명코드</th>
-            <th style="min-width:200px">품명</th><th style="text-align:right;width:38px">수주량</th><th style="text-align:right;width:85px">수주단가</th>
-            <th style="width:100px">제조업체</th><th style="width:130px">발주처</th>
-            <th style="text-align:right;width:85px">발주단가</th>
-            <th style="text-align:right;width:48px">마진율</th>
-            <th style="min-width:240px;">
+            <th style="width:52px">수주자</th><th style="width:64px">수주일</th>
+            <th>수주처</th><th style="width:68px">품명코드</th>
+            <th>품명</th><th style="text-align:right;width:32px">수주량</th><th style="text-align:right;width:64px">수주단가</th>
+            <th style="width:76px">제조업체</th><th style="width:88px">발주처</th>
+            <th style="text-align:right;width:64px">발주단가</th>
+            <th style="text-align:right;width:38px">마진율</th>
+            <th>
               사유
               <button onclick="saveAllOrdHistoryReasons()"
-                style="margin-left:8px;padding:2px 10px;font-size:10px;border-radius:5px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;cursor:pointer;font-weight:700;vertical-align:middle;">
+                style="margin-left:6px;padding:2px 8px;font-size:9.5px;border-radius:5px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;cursor:pointer;font-weight:700;vertical-align:middle;">
                 📋 전체 저장
               </button>
             </th>
-            <th style="width:68px">저장일</th><th style="width:68px">확인날짜</th><th style="width:130px">업로드</th><th style="width:44px">삭제</th>
+            <th style="width:56px">저장일</th><th style="width:56px">확인날짜</th><th style="width:60px">업로드</th><th style="width:30px">삭제</th>
           </tr></thead>
           <tbody id="ord-h-tbody"></tbody>
         </table>
@@ -2741,10 +2742,10 @@ async function uploadOrd() {
   showToast('먼저 💾 저장 후 히스토리 탭에서 이슈모니터 업로드하세요.', 'warn');
 }
 
-// 히스토리 탭 일괄 업로드 - 월 선택 후 실행
+// 히스토리 탭 일괄 업로드 - 월 선택 후 실행 (상태 무관, 화면에 조회된 전체 건 대상 — 재업로드 포함)
 function showOrdBulkUploadModal() {
-  const bar = document.getElementById('ord-bulk-bar');
-  if(!bar._data || !bar._data.length){ alert('업로드할 데이터가 없습니다.'); return; }
+  const rows = window._ordHistoryFiltered || [];
+  if(!rows.length){ alert('업로드할 데이터가 없습니다. 먼저 조회해주세요.'); return; }
   const now = new Date();
   // 필터에서 년/월 선택돼 있으면 그걸로 기본값 세팅
   const yr = document.getElementById('ord-h-year')?.value;
@@ -2756,22 +2757,31 @@ function showOrdBulkUploadModal() {
   document.getElementById('ord-bulk-month-modal').style.display = 'flex';
 }
 
+// 누적 업로드 횟수 (이 브라우저 기준 로컬 카운터 — "이 버튼을 몇 번 실행했는지")
+function getOrdUploadCount(){ return parseInt(localStorage.getItem('ord_bulk_upload_count')||'0',10); }
+function bumpOrdUploadCount(){
+  const n = getOrdUploadCount()+1;
+  localStorage.setItem('ord_bulk_upload_count', String(n));
+  return n;
+}
+function refreshOrdUploadCountDisplay(){
+  const n = getOrdUploadCount();
+  const label = document.getElementById('ord-bulk-count');
+  if(label) label.textContent = n>0 ? `(${n}회 실행됨)` : '';
+  const kpi = document.getElementById('ord-h-uc');
+  if(kpi) kpi.textContent = n+'회';
+}
+
 async function bulkUploadOrd() {
-  const bar  = document.getElementById('ord-bulk-bar');
-  const btn  = document.getElementById('ord-bulk-btn');
-  const info = document.getElementById('ord-bulk-info');
-  const rows = bar._data;
-  if(!rows || !rows.length){ alert('업로드할 데이터가 없습니다.'); return; }
+  const rows = window._ordHistoryFiltered || [];
+  if(!rows.length){ alert('업로드할 데이터가 없습니다.'); return; }
 
   const ym = document.getElementById('ord-bulk-month-input').value;
   if(!ym){ alert('월을 선택해주세요.'); return; }
   document.getElementById('ord-bulk-month-modal').style.display = 'none';
+  showToast(`${rows.length}건 이슈모니터로 업로드(재업로드 포함) 중...`,'');
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>업로드 중...';
-
-  // 이슈모니터에 insert할 payload (id, created_at, is_uploaded 제외 + 원본 로컬 id는 매칭용으로 별도 보관)
-  const localIds = rows.map(r=>r.id);
+  // merge-duplicates: 이슈모니터에 이미 있으면 최신 값(사유 등)으로 덮어쓰고, 없으면 새로 insert — 상태 무관 항상 동일하게 동작
   const payload = rows.map(r => {
     const obj = {...r};
     delete obj.id;
@@ -2781,26 +2791,12 @@ async function bulkUploadOrd() {
   });
 
   try {
-    // return=representation 으로 바꿔서 "실제로 몇 건이 insert됐는지" 정확히 확인 (중복이라 조용히 스킵된 건 여기서 잡힘)
     const uploadResp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/orders', 'POST', payload,
-      'resolution=ignore-duplicates,return=representation');
+      'resolution=merge-duplicates,return=minimal');
 
-    if(uploadResp.ok || uploadResp.status === 201 || uploadResp.status === 409) {
-      let inserted = [];
-      try{ inserted = await uploadResp.json(); }catch(e){ inserted = []; }
-      const insertedCount = Array.isArray(inserted) ? inserted.length : 0;
-      const skippedCount = rows.length - insertedCount;
-
-      // 어떤 건이 스킵됐는지 orderer+order_date+item_code 조합으로 역추적해서 콘솔에 정확히 남김
-      if(skippedCount > 0){
-        const keyOf = r => `${r.orderer}|${r.order_date}|${r.item_code}`;
-        const insertedKeys = new Set(inserted.map(keyOf));
-        const skippedRows = rows.filter(r=>!insertedKeys.has(keyOf(r)));
-        console.warn(`⚠ 이슈모니터 업로드 중 ${skippedCount}건 스킵됨 (이미 이슈모니터에 동일 건 존재 — 중복 방지 로직에 의해 자동 제외):`, skippedRows);
-      }
-
-      // 업로더DB is_uploaded = true 일괄 업데이트 (전체 대상 — 스킵된 건도 "이미 이슈모니터에 있는 데이터"라 완료 처리 맞음)
-      const ids = bar._ids;
+    if(uploadResp.ok || uploadResp.status === 201 || uploadResp.status === 204) {
+      // 업로더DB is_uploaded = true 일괄 업데이트 (참고용 표시일 뿐, 이제 업로드 가능 여부와는 무관)
+      const ids = rows.map(r=>r.id);
       await fetch(`${UPLOADER_URL}/rest/v1/orders?id=in.(${ids.join(',')})`, {
         method: 'PATCH',
         headers: {
@@ -2810,67 +2806,17 @@ async function bulkUploadOrd() {
         },
         body: JSON.stringify({is_uploaded: true})
       });
-
-      if(skippedCount > 0){
-        info.innerHTML = `✅ 신규 <strong>${insertedCount}건</strong> 업로드, ⚠ <strong>${skippedCount}건</strong>은 이슈모니터에 이미 있어 스킵됨 (콘솔 확인)`;
-      }else{
-        info.innerHTML = `✅ <strong>${insertedCount}건</strong> 이슈모니터 업로드 완료!`;
-      }
-      info.style.color = 'var(--success)';
-      btn.style.display = 'none';
-      bar._data = [];
-      bar._ids  = [];
-
+      const cnt = bumpOrdUploadCount();
+      refreshOrdUploadCountDisplay();
+      showToast(`✅ ${rows.length}건 이슈모니터 업로드 완료! (누적 ${cnt}회)`,'success');
       setTimeout(() => loadOrdHistory(), 1000);
     } else {
-      const e = await uploadResp.json().catch(() => ({}));
-      if(e.code === '23505') {
-        const ids = bar._ids;
-        await fetch(`${UPLOADER_URL}/rest/v1/orders?id=in.(${ids.join(',')})`, {
-          method: 'PATCH',
-          headers: {'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
-          body: JSON.stringify({is_uploaded:true})
-        });
-        info.innerHTML = '⚠️ 일부 중복 포함 — 신규건 업로드됨';
-        setTimeout(() => loadOrdHistory(), 1000);
-      } else {
-        throw new Error(e.message || `HTTP ${uploadResp.status}`);
-      }
+      const errBody = await uploadResp.text().catch(() => '');
+      console.error('업로드 실패', uploadResp.status, errBody);
+      throw new Error(`HTTP ${uploadResp.status}`);
     }
   } catch(e) {
-    info.innerHTML = '❌ 오류: ' + e.message;
-    info.style.color = 'var(--danger)';
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '📤 미업로드 일괄 업로드';
-  }
-}
-
-// 개별 건 재업로드 (완료된 건도 사유 수정 후 다시 올릴 수 있게 — 이슈모니터 쪽 값을 최신으로 갱신)
-async function reuploadOrdRow(id, btnEl) {
-  const orig = btnEl.textContent;
-  btnEl.textContent = '⏳'; btnEl.disabled = true;
-  try{
-    const getResp = await fetch(`${UPLOADER_URL}/rest/v1/orders?id=eq.${id}&select=*`,
-      {headers:{'apikey':UPLOADER_KEY,'Authorization':'Bearer '+UPLOADER_KEY}});
-    const rows = await getResp.json();
-    if(!rows || !rows.length){ showToast('데이터를 찾을 수 없습니다.','error'); return; }
-    const obj = {...rows[0]};
-    delete obj.id; delete obj.created_at; delete obj.is_uploaded;
-    // merge-duplicates: 이슈모니터에 이미 있으면 사유 등 최신 값으로 덮어씀 (신규면 새로 insert)
-    const resp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/orders', 'POST', [obj],
-      'resolution=merge-duplicates,return=minimal');
-    if(resp.ok || resp.status===201 || resp.status===204){
-      showToast('🔄 이슈모니터에 최신 내용으로 재업로드 완료','success');
-    }else{
-      const errBody = await resp.text().catch(()=> '');
-      console.error('재업로드 실패', resp.status, errBody);
-      showToast(`재업로드 실패 (${resp.status})`,'error');
-    }
-  }catch(e){
-    showToast('재업로드 오류: '+e.message,'error');
-  }finally{
-    btnEl.textContent = orig; btnEl.disabled = false;
+    showToast('업로드 오류: '+e.message,'error');
   }
 }
 
@@ -3007,29 +2953,7 @@ async function loadOrdHistory() {
       const avg = filtered.reduce((s,r)=>s+(r.margin_rate||0),0)/filtered.length;
       avgEl.textContent = avg.toFixed(1)+'%';
     }
-    // 미업로드 KPI + 일괄업로드 바
-    const notUploaded = filtered.filter(r=>!r.is_uploaded);
-    const nuEl = document.getElementById('ord-h-nu');
-    if(nuEl){ nuEl.textContent = notUploaded.length+'건'; nuEl.parentElement.querySelector('.sk').style.color = notUploaded.length>0?'var(--danger)':''; }
-    const bar = document.getElementById('ord-bulk-bar');
-    const info = document.getElementById('ord-bulk-info');
-    if(bar && info){
-      if(notUploaded.length > 0){
-        bar.style.display = 'flex';
-        const yr2 = document.getElementById('ord-h-year')?.value;
-        const mo2 = document.getElementById('ord-h-month')?.value;
-        const periodTxt2 = yr2 && mo2 ? `${yr2}-${String(mo2).padStart(2,'0')} ` : yr2 ? `${yr2}년 ` : '';
-        info.innerHTML = `${periodTxt2}미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
-        const bulkBtnEl = document.getElementById('ord-bulk-btn');
-        bulkBtnEl.style.display = ''; // ← 이전 업로드 성공 시 숨겨졌던 버튼을 새로운 미업로드건이 생기면 다시 보이게 복구
-        bulkBtnEl.disabled = false;
-        bulkBtnEl.textContent = `📤 ${periodTxt2}미업로드 ${notUploaded.length}건 일괄 업로드`;
-        bar._ids = notUploaded.map(r=>r.id);
-        bar._data = notUploaded;
-      } else {
-        bar.style.display = 'none';
-      }
-    }
+    refreshOrdUploadCountDisplay();
 
     // 수주자별 그룹핑
     const groups = {};
@@ -3102,12 +3026,8 @@ async function loadOrdHistory() {
           <td style="font-size:11px;color:var(--text-muted);white-space:nowrap">${(r.created_at||'').slice(0,10)}</td>
           <td style="font-size:11px;white-space:nowrap;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}">${r.reason_at?(r.reason_at.slice(0,10)):'미확인'}</td>
           <td style="white-space:nowrap;">${r.is_uploaded
-            ? `<span style="display:inline-flex;align-items:center;gap:5px;">
-                 <span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>
-                 <button onclick="reuploadOrdRow('${r.id}',this)" title="사유 등 수정한 내용을 이슈모니터에 다시 반영"
-                   style="border:1px solid #d0dcea;background:#fff;border-radius:6px;padding:2px 6px;font-size:11px;cursor:pointer;">🔄</button>
-               </span>`
-            : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미업로드</span>'
+            ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>'
+            : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미완료</span>'
           }</td>
           <td style="text-align:center;"><button onclick="deleteOrdRow('${r.id}')" title="삭제" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:#c04040;">🗑️</button></td>
         </tr>`;
