@@ -1534,7 +1534,7 @@ async function loadLowHistory(){
   document.getElementById('low-stats').innerHTML='';
   let qs=buildQueryString('low');
   try{
-    const resp=await fetch(`${UPLOADER_URL}/rest/v1/low_margin_shipments?${qs}&order=ship_date.asc&limit=500`,
+    const resp=await fetch(`${UPLOADER_URL}/rest/v1/low_margin_shipments?${qs}&order=ship_date.asc,id.asc&limit=500`,
       {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
@@ -1783,7 +1783,7 @@ async function loadRetHistory(){
   document.getElementById('ret-stats').innerHTML='';
   let qs=buildQueryString('ret');
   try{
-    const resp=await fetch(`${UPLOADER_URL}/rest/v1/return_shipments?${qs}&order=return_date.asc&limit=500`,
+    const resp=await fetch(`${UPLOADER_URL}/rest/v1/return_shipments?${qs}&order=return_date.asc,id.asc&limit=500`,
       {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
@@ -2170,79 +2170,69 @@ async function uploadHistoryRow(tab, id) {
   }
 }
 
-// 히스토리 행 수정 (인라인) - 더블클릭
-// 탭별 편집가능 컬럼 매핑 (td 인덱스 → {실제DB필드명, 입력타입}) — 'reason' 타입은 원본 읽기전용 미리보기 + textarea로 특별 처리
+// 히스토리 행 수정 - 팝업 모달 방식 (좁은 인라인 칸 대신 크게 보여줌)
+// 탭별 편집가능 컬럼 매핑 (td 인덱스 → {실제DB필드명, 입력타입, 라벨}) — 'reason' 타입은 원본 읽기전용 미리보기 + textarea로 특별 처리
 const HIST_FIELD_MAP = {
-  low: {0:{f:'ship_date',t:'date'},1:{f:'customer_name',t:'text'},2:{f:'rep',t:'text'},3:{f:'catalog_no',t:'text'},
-        4:{f:'item_name',t:'text'},5:{f:'brand',t:'text'},6:{f:'cost_price',t:'number'},7:{f:'sale_price',t:'number'},
-        8:{f:'margin_rate',t:'number'},9:{f:'reason',t:'reason'}},
-  ret: {0:{f:'return_date',t:'date'},1:{f:'rep',t:'text'},2:{f:'code',t:'text'},3:{f:'item_name',t:'text'},
-        4:{f:'qty',t:'number'},5:{f:'supplier',t:'text'},6:{f:'customer_name',t:'text'},7:{f:'reason',t:'reason'},
-        9:{f:'unit_price',t:'number'},10:{f:'total',t:'number'}}
+  low: {0:{f:'ship_date',t:'date',label:'출고일'},1:{f:'customer_name',t:'text',label:'거래처'},2:{f:'rep',t:'text',label:'담당자'},
+        3:{f:'catalog_no',t:'text',label:'카달로그번호'},4:{f:'item_name',t:'text',label:'품명'},5:{f:'brand',t:'text',label:'브랜드'},
+        6:{f:'cost_price',t:'number',label:'입고가'},7:{f:'sale_price',t:'number',label:'출고가'},
+        8:{f:'margin_rate',t:'number',label:'마진율(%)'},9:{f:'reason',t:'reason',label:'사유'}},
+  ret: {0:{f:'return_date',t:'date',label:'반품일'},1:{f:'rep',t:'text',label:'담당자'},2:{f:'code',t:'text',label:'코드'},
+        3:{f:'item_name',t:'text',label:'품명'},4:{f:'qty',t:'number',label:'수량'},5:{f:'supplier',t:'text',label:'매입처'},
+        6:{f:'customer_name',t:'text',label:'수주처'},7:{f:'reason',t:'reason',label:'사유'},
+        9:{f:'unit_price',t:'number',label:'단가'},10:{f:'total',t:'number',label:'합계'}}
 };
+
+let _histEditCtx = null; // {tab, id}
 
 function editHistoryRow(tab, id, btn) {
   const tr = btn.closest('tr');
   const map = HIST_FIELD_MAP[tab];
-  tr.dataset.editing = 'true';
-
-  // 원본 셀 내용을 기억해뒀다가 취소시 그대로 복구
-  tr._origCells = [];
   const tds = [...tr.querySelectorAll('td')];
 
-  Object.entries(map).forEach(([i, def]) => {
+  const fieldsHtml = Object.entries(map).map(([i, def]) => {
     const td = tds[parseInt(i)];
-    if(!td) return;
-    tr._origCells.push({td, html: td.innerHTML});
-
-    // 기존 텍스트값 추출
     let val = '';
-    const span = td.querySelector('span');
-    const inp = td.querySelector('input');
-    if(inp) { val = inp.value; }
-    else if(span) { val = span.textContent.trim(); }
-    else { val = td.textContent.trim(); }
-    val = val.replace(/%$/, '').replace(/,/g,'').trim();
-    if(val === '-') val = '';
-
-    if(def.t === 'reason'){
-      // 사유: 원본을 읽기전용으로 위에 보여주고, 그 아래 별도 textarea로 축약/재작성 가능하게
-      td.innerHTML = `
-        <div style="font-size:11px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;margin-bottom:5px;max-height:90px;overflow-y:auto;white-space:pre-wrap;line-height:1.5;">${esc(val)||'(원본 사유 없음)'}</div>
-        <textarea data-field="reason" rows="3" style="width:100%;min-width:160px;background:var(--surface2);border:1.5px solid var(--accent);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;">${esc(val)}</textarea>`;
-    }else{
-      td.innerHTML = `<input data-field="${def.f}" style="width:100%;min-width:60px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px;box-sizing:border-box;" type="${def.t}" value="${esc(val)}">`;
+    if(td){
+      const span = td.querySelector('span');
+      val = span ? span.textContent.trim() : td.textContent.trim();
+      val = val.replace(/%$/, '').replace(/,/g,'').trim();
+      if(val === '-') val = '';
     }
-  });
+    if(def.t === 'reason'){
+      return `<div>
+        <div style="font-size:11.5px;font-weight:700;color:var(--text-sub);margin-bottom:5px;">${def.label}</div>
+        <div style="font-size:12.5px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;margin-bottom:7px;max-height:110px;overflow-y:auto;white-space:pre-wrap;line-height:1.55;">${esc(val)||'(원본 사유 없음)'}</div>
+        <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:4px;">↓ 아래에 새로 쓸 사유를 입력하세요</div>
+        <textarea data-field="reason" rows="4" style="width:100%;background:var(--surface2);border:1.5px solid var(--accent);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;">${esc(val)}</textarea>
+      </div>`;
+    }
+    return `<div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--text-sub);margin-bottom:5px;">${def.label}</div>
+      <input data-field="${def.f}" type="${def.t}" value="${esc(val)}" style="width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;padding:10px 11px;color:var(--text);font-size:13.5px;box-sizing:border-box;">
+    </div>`;
+  }).join('');
 
-  // 액션 버튼: ✏️/🗑️ → 💾 저장 / ✕ 취소 로 교체 (취소하면 저장 없이 원복)
-  const actionTd = btn.closest('td');
-  actionTd.dataset.origHtml = actionTd.innerHTML;
-  actionTd.innerHTML = `
-    <button onclick="saveEditHistoryRow('${tab}','${id}',this)" title="저장" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--success);">💾</button>
-    <button onclick="cancelEditHistoryRow('${tab}',this)" title="취소" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">✕</button>`;
+  document.getElementById('hist-edit-fields').innerHTML = fieldsHtml;
+  _histEditCtx = {tab, id};
+  document.getElementById('hist-edit-modal').style.display = 'flex';
 }
 
-// 편집 취소: 저장 없이 원래 셀 내용으로 복구
-function cancelEditHistoryRow(tab, btn){
-  const tr = btn.closest('tr');
-  if(tr._origCells){
-    tr._origCells.forEach(({td, html}) => { td.innerHTML = html; });
-    tr._origCells = null;
-  }
-  const actionTd = btn.closest('td');
-  if(actionTd.dataset.origHtml){ actionTd.innerHTML = actionTd.dataset.origHtml; delete actionTd.dataset.origHtml; }
-  tr.dataset.editing = 'false';
+function closeHistEditModal(){
+  document.getElementById('hist-edit-modal').style.display = 'none';
+  _histEditCtx = null;
 }
 
-async function saveEditHistoryRow(tab, id, btn) {
-  const tr = btn.closest('tr');
+async function saveHistEditModal(){
+  if(!_histEditCtx) return;
+  const {tab, id} = _histEditCtx;
   const tbl = tab === 'low' ? 'low_margin_shipments' : 'return_shipments';
   const map = HIST_FIELD_MAP[tab];
+  const container = document.getElementById('hist-edit-fields');
 
   const update = {};
   Object.values(map).forEach(def => {
-    const el = tr.querySelector(`[data-field="${def.f}"]`);
+    const el = container.querySelector(`[data-field="${def.f}"]`);
     if(!el) return;
     const raw = el.value;
     update[def.f] = def.t === 'number'
@@ -2250,17 +2240,26 @@ async function saveEditHistoryRow(tab, id, btn) {
       : (raw.trim() || null);
   });
 
-  const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
-    method:'PATCH',
-    headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
-    body:JSON.stringify(update)
-  });
+  const btn = document.getElementById('hist-edit-save-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
 
-  if(resp.ok){
-    setStatus('✏️ 수정 완료!','','success');
-    if(tab==='low') loadLowHistory(); else loadRetHistory();
-  } else {
-    alert('❌ 수정 실패');
+  try{
+    const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
+      body:JSON.stringify(update)
+    });
+    if(resp.ok){
+      setStatus('✏️ 수정 완료!','','success');
+      closeHistEditModal();
+      if(tab==='low') loadLowHistory(); else loadRetHistory();
+    }else{
+      alert('❌ 수정 실패');
+    }
+  }catch(e){
+    alert('❌ 오류: '+e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = '💾 저장';
   }
 }
 
@@ -3308,6 +3307,21 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
 </div>
 
 <!-- ══ 제조업체별 일괄 사유입력 모달 ══ -->
+<!-- ══ 히스토리 행 수정 모달 (10%미만출고건 / 반품처리건 공용) ══ -->
+<div id="hist-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(20,30,45,.6);z-index:9999;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto;">
+  <div style="background:var(--surface,#1a1d2e);border-radius:18px;padding:26px 24px;width:min(520px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.4);margin-bottom:40px;">
+    <div style="display:flex;align-items:center;margin-bottom:18px;">
+      <div style="font-size:16px;font-weight:800;color:var(--text);">✏️ 항목 수정</div>
+      <button onclick="closeHistEditModal()" style="margin-left:auto;border:none;background:none;font-size:18px;cursor:pointer;color:var(--text-muted);">✕</button>
+    </div>
+    <div id="hist-edit-fields" style="display:flex;flex-direction:column;gap:14px;"></div>
+    <div style="display:flex;gap:10px;margin-top:22px;">
+      <button onclick="closeHistEditModal()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border2);background:transparent;color:var(--text);font-size:14px;cursor:pointer;">취소</button>
+      <button onclick="saveHistEditModal()" id="hist-edit-save-btn" style="flex:1.4;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),#3a65a8);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💾 저장</button>
+    </div>
+  </div>
+</div>
+
 <div id="ord-maker-reason-modal" style="display:none;position:fixed;inset:0;background:rgba(30,50,80,.55);z-index:9998;align-items:flex-start;justify-content:center;padding-top:60px;overflow-y:auto;">
   <div style="background:#fff;border-radius:20px;padding:28px 26px;width:min(560px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.25);margin-bottom:40px;">
     <div style="font-size:17px;font-weight:800;color:#1a2a3a;margin-bottom:4px;">🏭 제조업체별 일괄 사유입력</div>
