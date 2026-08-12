@@ -536,7 +536,8 @@ tr:last-child td{border-bottom:none;}
 /* 가로스크롤 없이 한 화면에 맞추기 위한 전용 컴팩트 테이블 (10%미만 수주건 히스토리) */
 .ord-h-table, .ord-h-table th, .ord-h-table td{box-sizing:border-box;}
 .ord-h-table th, .ord-h-table td{padding:6px 6px;font-size:11px;}
-.ord-h-table td{white-space:normal;word-break:break-word;overflow-wrap:break-word;}
+.ord-h-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ord-h-table td.ord-wrap{white-space:normal;overflow:visible;word-break:break-word;overflow-wrap:break-word;}
 tbody tr{transition:background 0.1s;}
 tbody tr:hover td{background:rgba(255,255,255,0.5);}
 /* 통계 카드 */
@@ -948,7 +949,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
       <div class="table-wrap">
         <table class="ord-h-table" style="table-layout:fixed;">
           <thead><tr style="background:rgba(240,245,255,0.8);">
-            <th style="width:52px">수주자</th><th style="width:64px">수주일</th>
+            <th style="width:56px">수주자</th><th style="width:72px">수주일</th>
             <th>수주처</th><th style="width:68px">품명코드</th>
             <th>품명</th><th style="text-align:right;width:32px">수주량</th><th style="text-align:right;width:64px">수주단가</th>
             <th style="width:76px">제조업체</th><th style="width:88px">발주처</th>
@@ -961,7 +962,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
                 📋 전체 저장
               </button>
             </th>
-            <th style="width:56px">저장일</th><th style="width:56px">확인날짜</th><th style="width:60px">업로드</th><th style="width:30px">삭제</th>
+            <th style="width:48px">저장일</th><th style="width:48px">확인날짜</th><th style="width:60px">업로드</th><th style="width:30px">삭제</th>
           </tr></thead>
           <tbody id="ord-h-tbody"></tbody>
         </table>
@@ -2991,18 +2992,18 @@ async function loadOrdHistory() {
       grpRows.forEach(r => {
         const mgDisp = r.margin_rate!=null ? Math.round(r.margin_rate)+'%' : '—';
         html += `<tr>
-          <td style="white-space:nowrap;font-size:12px">${r.orderer||'—'}</td>
-          <td style="white-space:nowrap;font-size:12px">${(r.order_date||'').slice(0,10)}</td>
-          <td style="font-size:12px">${r.customer_name||'—'}</td>
-          <td style="font-size:11px;color:#5a7a9a;white-space:nowrap">${r.item_code||'—'}</td>
-          <td style="font-size:12px">${(r.item_name && r.item_name !== r.item_code) ? r.item_name : '—'}</td>
+          <td style="font-size:12px" title="${r.orderer||''}">${r.orderer||'—'}</td>
+          <td style="font-size:12px" title="${(r.order_date||'').slice(0,10)}">${(r.order_date||'').slice(0,10)}</td>
+          <td class="ord-wrap" style="font-size:12px">${r.customer_name||'—'}</td>
+          <td style="font-size:11px;color:#5a7a9a" title="${r.item_code||''}">${r.item_code||'—'}</td>
+          <td class="ord-wrap" style="font-size:12px">${(r.item_name && r.item_name !== r.item_code) ? r.item_name : '—'}</td>
           <td style="text-align:right;font-size:12px">${r.order_qty||'—'}</td>
-          <td style="text-align:right;white-space:nowrap;font-size:12px">${r.order_price?Number(r.order_price).toLocaleString():'—'}</td>
-          <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.maker||''}">${r.maker||'—'}</td>
-          <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.po_vendor||''}">${r.po_vendor||'—'}</td>
-          <td style="text-align:right;white-space:nowrap;font-size:12px">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
-          <td style="text-align:right;color:var(--danger);font-weight:700;white-space:nowrap">${mgDisp}</td>
-          <td style="min-width:220px;">
+          <td style="text-align:right;font-size:12px" title="${r.order_price?Number(r.order_price).toLocaleString():''}">${r.order_price?Number(r.order_price).toLocaleString():'—'}</td>
+          <td style="font-size:11px" title="${r.maker||''}">${r.maker||'—'}</td>
+          <td style="font-size:11px" title="${r.po_vendor||''}">${r.po_vendor||'—'}</td>
+          <td style="text-align:right;font-size:12px" title="${r.po_price?Number(r.po_price).toLocaleString():''}">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
+          <td style="text-align:right;color:var(--danger);font-weight:700;">${mgDisp}</td>
+          <td class="ord-wrap" style="min-width:0;">
             ${r.reason
               ? `<div style="display:flex;gap:6px;align-items:center;">
                    <span id="ord-h-reason-text-${r.id}" style="flex:1;color:#1a2a3a;font-size:12.5px;">${r.reason}</span>
@@ -3023,8 +3024,8 @@ async function loadOrdHistory() {
                  </div>`
             }
           </td>
-          <td style="font-size:11px;color:var(--text-muted);white-space:nowrap">${(r.created_at||'').slice(0,10)}</td>
-          <td style="font-size:11px;white-space:nowrap;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}">${r.reason_at?(r.reason_at.slice(0,10)):'미확인'}</td>
+          <td style="font-size:11px;color:var(--text-muted);" title="${(r.created_at||'').slice(0,10)}">${(r.created_at||'').slice(2,10)}</td>
+          <td style="font-size:11px;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}" title="${r.reason_at||''}">${r.reason_at?(r.reason_at.slice(2,10)):'미확인'}</td>
           <td style="white-space:nowrap;">${r.is_uploaded
             ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>'
             : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미완료</span>'
