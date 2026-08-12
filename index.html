@@ -3026,7 +3026,7 @@ async function loadOrdHistory() {
           <td style="font-size:12px" title="${(r.order_date||'').slice(0,10)}">${(r.order_date||'').slice(0,10)}</td>
           <td style="font-size:12px">${r.customer_name||'—'}</td>
           <td style="font-size:11px;color:#5a7a9a" title="${r.item_code||''}">${r.item_code||'—'}</td>
-          <td style="font-size:12px">${(r.item_name && r.item_name !== r.item_code) ? r.item_name : '—'}</td>
+          <td class="ord-wrap" style="font-size:12px;max-width:230px;">${(r.item_name && r.item_name !== r.item_code) ? r.item_name : '—'}</td>
           <td style="text-align:right;font-size:12px">${r.order_qty||'—'}</td>
           <td style="text-align:right;font-size:12px" title="${r.order_price?Number(r.order_price).toLocaleString():''}">${r.order_price?Number(r.order_price).toLocaleString():'—'}</td>
           <td style="font-size:11px" title="${r.maker||''}">${r.maker||'—'}</td>
