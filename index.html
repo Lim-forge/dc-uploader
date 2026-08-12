@@ -2190,7 +2190,10 @@ function editHistoryRow(tab, id, btn) {
   const map = HIST_FIELD_MAP[tab];
   const tds = [...tr.querySelectorAll('td')];
 
-  const fieldsHtml = Object.entries(map).map(([i, def]) => {
+  const gridParts = [];
+  const reasonParts = [];
+
+  Object.entries(map).forEach(([i, def]) => {
     const td = tds[parseInt(i)];
     let val = '';
     if(td){
@@ -2200,18 +2203,21 @@ function editHistoryRow(tab, id, btn) {
       if(val === '-') val = '';
     }
     if(def.t === 'reason'){
-      return `<div>
+      reasonParts.push(`<div style="margin-top:16px;">
         <div style="font-size:11.5px;font-weight:700;color:var(--text-sub);margin-bottom:5px;">${def.label}</div>
         <div style="font-size:12.5px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;margin-bottom:7px;max-height:110px;overflow-y:auto;white-space:pre-wrap;line-height:1.55;">${esc(val)||'(원본 사유 없음)'}</div>
         <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:4px;">↓ 아래에 새로 쓸 사유를 입력하세요</div>
         <textarea data-field="reason" rows="4" style="width:100%;background:var(--surface2);border:1.5px solid var(--accent);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;">${esc(val)}</textarea>
-      </div>`;
+      </div>`);
+    }else{
+      gridParts.push(`<div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:5px;">${def.label}</div>
+        <input data-field="${def.f}" type="${def.t}" value="${esc(val)}" style="width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;padding:9px 10px;color:var(--text);font-size:13px;box-sizing:border-box;">
+      </div>`);
     }
-    return `<div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--text-sub);margin-bottom:5px;">${def.label}</div>
-      <input data-field="${def.f}" type="${def.t}" value="${esc(val)}" style="width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;padding:10px 11px;color:var(--text);font-size:13.5px;box-sizing:border-box;">
-    </div>`;
-  }).join('');
+  });
+
+  const fieldsHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">${gridParts.join('')}</div>${reasonParts.join('')}`;
 
   document.getElementById('hist-edit-fields').innerHTML = fieldsHtml;
   _histEditCtx = {tab, id};
@@ -3309,7 +3315,7 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
 <!-- ══ 제조업체별 일괄 사유입력 모달 ══ -->
 <!-- ══ 히스토리 행 수정 모달 (10%미만출고건 / 반품처리건 공용) ══ -->
 <div id="hist-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(20,30,45,.6);z-index:9999;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto;">
-  <div style="background:var(--surface,#1a1d2e);border-radius:18px;padding:26px 24px;width:min(520px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.4);margin-bottom:40px;">
+  <div style="background:var(--surface,#1a1d2e);border-radius:18px;padding:26px 28px;width:min(820px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.4);margin-bottom:40px;">
     <div style="display:flex;align-items:center;margin-bottom:18px;">
       <div style="font-size:16px;font-weight:800;color:var(--text);">✏️ 항목 수정</div>
       <button onclick="closeHistEditModal()" style="margin-left:auto;border:none;background:none;font-size:18px;cursor:pointer;color:var(--text-muted);">✕</button>
