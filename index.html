@@ -3001,23 +3001,18 @@ async function loadOrdHistory() {
     const sortedKeys = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ko'));
 
     let html = '';
-    const GRP_TONES = [
-      {bg:'rgba(255,214,224,.55)', bar:'#e8749a'},   // 로즈
-      {bg:'rgba(206,225,255,.55)', bar:'#4a7fc1'},   // 블루
-      {bg:'rgba(216,236,214,.55)', bar:'#5fa876'},   // 세이지그린
-      {bg:'rgba(255,229,196,.55)', bar:'#d99a4e'},   // 앰버
-      {bg:'rgba(226,214,250,.55)', bar:'#9070c9'},   // 라벤더
-    ];
+    const GRP_TONE = {bg:'rgba(232,240,252,.65)', bar:'#4a7fc1'}; // 전체 그룹 통일톤 (블루)
     sortedKeys.forEach((name, gIdx) => {
       const grpRows = groups[name];
-      const tone = GRP_TONES[gIdx % GRP_TONES.length];
+      const tone = GRP_TONE;
       const avgMg = grpRows.reduce((s,r)=>s+(r.margin_rate||0),0)/grpRows.length;
       const reasonCount = grpRows.filter(r=>r.reason).length;
       const linkYm = y && month ? `${y}-${month.padStart(2,'0')}` : y ? y+'-'+String(new Date().getMonth()+1).padStart(2,'0') : '';
       const link = `${location.origin}/reason.html?ord=${encodeURIComponent(name)}${linkYm?'&ym='+linkYm:''}`;
       html += `<tr style="background:${tone.bg};">
         <td colspan="16" style="padding:8px 13px 8px 11px;font-weight:700;font-size:12px;color:#4a6a8a;border-top:2px solid rgba(180,200,230,.4);border-left:4px solid ${tone.bar};">
-          👤 <span style="color:#1a2a3a">${name}</span>
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13" style="vertical-align:-2px;margin-right:2px;"><circle cx="12" cy="8" r="4" stroke="#4a7fc1" stroke-width="2"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="#4a7fc1" stroke-width="2" stroke-linecap="round"/></svg>
+          <span style="color:#1a2a3a">${name}</span>
           <span style="background:rgba(74,127,193,.12);color:#4a7fc1;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px;">${grpRows.length}건</span>
           <span style="background:rgba(220,80,80,.1);color:#d95f5f;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:4px;">평균 ${avgMg.toFixed(1)}%</span>
           <span style="background:${reasonCount===grpRows.length?'rgba(46,158,110,.12)':'rgba(200,140,20,.1)'};color:${reasonCount===grpRows.length?'#2e9e6e':'#b08010'};font-size:10px;padding:2px 8px;border-radius:4px;margin-left:4px;">사유 ${reasonCount}/${grpRows.length}</span>
