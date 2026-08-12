@@ -945,8 +945,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <button class="btn btn-primary" onclick="showOrdBulkUploadModal()" id="ord-bulk-btn">📤 미업로드 일괄 업로드</button>
       </div>
       <div class="table-wrap">
-        <table>
-          <thead><tr style="background:linear-gradient(135deg,#FFE9E4,#FFDCE8);">
+        <table style="min-width:1560px;">
+          <thead><tr style="background:rgba(240,245,255,0.8);">
             <th style="width:60px">수주자</th><th style="width:78px">수주일</th>
             <th style="min-width:160px">수주처</th><th style="width:88px">품명코드</th>
             <th style="min-width:200px">품명</th><th style="text-align:right;width:38px">수주량</th><th style="text-align:right;width:85px">수주단가</th>
@@ -3020,7 +3020,10 @@ async function loadOrdHistory() {
         const mo2 = document.getElementById('ord-h-month')?.value;
         const periodTxt2 = yr2 && mo2 ? `${yr2}-${String(mo2).padStart(2,'0')} ` : yr2 ? `${yr2}년 ` : '';
         info.innerHTML = `${periodTxt2}미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
-        document.getElementById('ord-bulk-btn').textContent = `📤 ${periodTxt2}미업로드 ${notUploaded.length}건 일괄 업로드`;
+        const bulkBtnEl = document.getElementById('ord-bulk-btn');
+        bulkBtnEl.style.display = ''; // ← 이전 업로드 성공 시 숨겨졌던 버튼을 새로운 미업로드건이 생기면 다시 보이게 복구
+        bulkBtnEl.disabled = false;
+        bulkBtnEl.textContent = `📤 ${periodTxt2}미업로드 ${notUploaded.length}건 일괄 업로드`;
         bar._ids = notUploaded.map(r=>r.id);
         bar._data = notUploaded;
       } else {
@@ -3038,14 +3041,22 @@ async function loadOrdHistory() {
     const sortedKeys = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ko'));
 
     let html = '';
-    sortedKeys.forEach(name => {
+    const GRP_TONES = [
+      {bg:'rgba(255,214,224,.55)', bar:'#e8749a'},   // 로즈
+      {bg:'rgba(206,225,255,.55)', bar:'#4a7fc1'},   // 블루
+      {bg:'rgba(216,236,214,.55)', bar:'#5fa876'},   // 세이지그린
+      {bg:'rgba(255,229,196,.55)', bar:'#d99a4e'},   // 앰버
+      {bg:'rgba(226,214,250,.55)', bar:'#9070c9'},   // 라벤더
+    ];
+    sortedKeys.forEach((name, gIdx) => {
       const grpRows = groups[name];
+      const tone = GRP_TONES[gIdx % GRP_TONES.length];
       const avgMg = grpRows.reduce((s,r)=>s+(r.margin_rate||0),0)/grpRows.length;
       const reasonCount = grpRows.filter(r=>r.reason).length;
       const linkYm = y && month ? `${y}-${month.padStart(2,'0')}` : y ? y+'-'+String(new Date().getMonth()+1).padStart(2,'0') : '';
       const link = `${location.origin}/reason.html?ord=${encodeURIComponent(name)}${linkYm?'&ym='+linkYm:''}`;
-      html += `<tr style="background:rgba(240,245,255,.8);">
-        <td colspan="16" style="padding:8px 13px;font-weight:700;font-size:12px;color:#4a6a8a;border-top:2px solid rgba(180,200,230,.4);">
+      html += `<tr style="background:${tone.bg};">
+        <td colspan="16" style="padding:8px 13px 8px 11px;font-weight:700;font-size:12px;color:#4a6a8a;border-top:2px solid rgba(180,200,230,.4);border-left:4px solid ${tone.bar};">
           👤 <span style="color:#1a2a3a">${name}</span>
           <span style="background:rgba(74,127,193,.12);color:#4a7fc1;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px;">${grpRows.length}건</span>
           <span style="background:rgba(220,80,80,.1);color:#d95f5f;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:4px;">평균 ${avgMg.toFixed(1)}%</span>
