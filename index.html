@@ -533,9 +533,14 @@ th{padding:10px 13px;color:var(--text-sub);font-weight:700;font-size:11px;
   text-transform:uppercase;letter-spacing:0.06em;text-align:left;white-space:nowrap;}
 td{padding:9px 13px;border-bottom:1px solid rgba(200,215,235,0.3);color:var(--text);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
+/* 가로스크롤 없이 한 화면에 맞추기 위한 전용 컴팩트 테이블 (10%미만 수주건 히스토리) */
+.ord-h-table, .ord-h-table th, .ord-h-table td{box-sizing:border-box;}
+.ord-h-table th, .ord-h-table td{padding:8px 10px;font-size:11.5px;}
+.ord-h-table td{white-space:nowrap;}
+.ord-h-table td.ord-wrap{white-space:normal;word-break:break-word;overflow-wrap:break-word;}
 tbody tr{transition:background 0.1s;}
 tbody tr:hover td{background:rgba(255,255,255,0.5);}
-/* 통계 카드 */
+/* 통계 카드 (다른 탭 공용) */
 .stat-card{
   background:rgba(255,255,255,0.65);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
@@ -543,6 +548,28 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
   border-radius:14px;padding:14px 18px;flex:1;min-width:120px;
   box-shadow:0 2px 12px rgba(0,0,0,0.06);
 }
+/* 10%미만 수주건 히스토리 - 5개 카드 (KPI 3 + 액션 2) */
+.ord-kpi-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.ord-kpi-card{flex:1;min-width:150px;border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:11px;
+  box-shadow:0 2px 10px rgba(0,0,0,.05);border:1.5px solid transparent;transition:all .15s;background:#fff;}
+.ord-kpi-card.clickable{cursor:pointer;}
+.ord-kpi-card.clickable:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.1);}
+.ord-kpi-icon{flex-shrink:0;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;}
+.ord-kpi-icon svg{width:19px;height:19px;}
+.ord-kpi-body{min-width:0;}
+.ord-kpi-value{font-size:19px;font-weight:800;line-height:1.15;color:#1a2a3a;}
+.ord-kpi-label{font-size:10.5px;color:#6a7a8a;font-weight:700;margin-top:1px;letter-spacing:.01em;}
+.ord-kpi-card.tone-blue{background:linear-gradient(135deg,#F3F8FF,#EAF2FE);border-color:#D8E8FC;}
+.ord-kpi-card.tone-blue .ord-kpi-icon{background:#DCEBFC;color:#2f6fbe;}
+.ord-kpi-card.tone-coral{background:linear-gradient(135deg,#FFF6F5,#FFF0EE);border-color:#FFDBD5;}
+.ord-kpi-card.tone-coral .ord-kpi-icon{background:#FFE0DC;color:#d9534f;}
+.ord-kpi-card.tone-green{background:linear-gradient(135deg,#F3FCF7,#EAFBF2);border-color:#D2F0DF;}
+.ord-kpi-card.tone-green .ord-kpi-icon{background:#D6F5E3;color:#2e9e6e;}
+.ord-kpi-card.tone-purple{background:linear-gradient(135deg,#FAF7FF,#F5F0FF);border-color:#E5D9FA;}
+.ord-kpi-card.tone-purple .ord-kpi-icon{background:#E8DCFB;color:#7c5cc4;}
+.ord-kpi-card.tone-indigo{background:linear-gradient(135deg,#F5F8FF,#EEF3FF);border-color:#DCE6FE;}
+.ord-kpi-card.tone-indigo .ord-kpi-icon{background:#DCE6FE;color:#4a5fc1;}
+@media(max-width:900px){.ord-kpi-row{flex-wrap:wrap;} .ord-kpi-card{min-width:44%;}}
 /* 버튼 */
 .btn{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
   border:none;transition:all 0.18s;font-family:var(--font);letter-spacing:0.01em;}
@@ -558,11 +585,12 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
   border:1px solid rgba(180,200,220,0.5);backdrop-filter:blur(8px);}
 .btn-ghost:hover{background:rgba(255,255,255,0.85);color:var(--text);}
 /* 필터바 */
-.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end;}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;}
+.filter-bar .btn, .filter-bar > button{padding:8px 14px !important;font-size:12.5px;line-height:1.3;box-sizing:border-box;}
 .filter-input{
   background:rgba(255,255,255,0.7);border:1px solid rgba(180,200,220,0.5);
   border-radius:10px;padding:8px 12px;color:var(--text);font-size:12.5px;
-  font-family:var(--font);outline:none;transition:all 0.15s;min-width:90px;
+  font-family:var(--font);outline:none;transition:all 0.15s;min-width:90px;box-sizing:border-box;
 }
 .filter-input:focus{border-color:var(--accent);background:rgba(255,255,255,0.9);}
 
@@ -834,7 +862,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <table>
           <thead><tr>
             <th>출고일</th><th>거래처</th><th>담당자</th><th>카달로그번호</th>
-            <th>품명</th><th>브랜드</th><th>입고가</th><th>출고가</th><th>마진율</th><th>사유</th><th>저장일</th><th>업로드</th><th>액션</th>
+            <th>품명</th><th>브랜드</th><th>입고가</th><th>출고가</th><th>마진율</th><th style="max-width:220px;">사유</th><th>저장일</th><th>업로드</th><th>액션</th>
           </tr></thead>
           <tbody id="low-h-tbody"></tbody>
         </table>
@@ -931,35 +959,45 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
           <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
         </select>
         <input type="text" id="ord-h-keyword" class="filter-input" placeholder="수주처/품명 검색" oninput="loadOrdHistory()" style="min-width:160px;">
-        <button class="btn btn-ghost" onclick="loadOrdHistory()">🔍 조회</button>
-        <button onclick="showOrdDeleteModal()" style="margin-left:auto;padding:6px 14px;font-size:12px;background:#fff;border:1.5px solid #e0a0a0;color:#c04040;border-radius:9px;font-weight:700;cursor:pointer;">🗑️ 선택 월 삭제</button>
+        <button class="btn btn-ghost" onclick="loadOrdHistory()"><svg viewBox="0 0 24 24" fill="none" width="14" height="14" style="vertical-align:-2px;margin-right:3px;"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>조회</button>
+        <button class="btn btn-ghost" onclick="showOrdBulkUploadModal()" style="border-color:#a8d0c0;color:#2e9e6e;font-weight:700;"><svg viewBox="0 0 24 24" fill="none" width="14" height="14" style="vertical-align:-2px;margin-right:3px;"><path d="M12 15V3m-4 4l4-4 4 4M4 21h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>이슈모니터 업로드 <span id="ord-bulk-count" style="opacity:.7;font-weight:600;"></span></button>
+        <button onclick="showOrdDeleteModal()" style="margin-left:auto;padding:6px 14px;font-size:12px;background:#fff;border:1.5px solid #e0a0a0;color:#c04040;border-radius:9px;font-weight:700;cursor:pointer;"><svg viewBox="0 0 24 24" fill="none" width="13" height="13" style="vertical-align:-2px;margin-right:3px;"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>선택 월 삭제</button>
       </div>
-      <div class="stats-row" id="ord-h-kpi" style="display:none;margin-bottom:16px;">
-        <div class="stat-card"><div class="sv blue" id="ord-h-total">—</div><div class="sk">전체</div></div>
-        <div class="stat-card"><div class="sv red"  id="ord-h-avg">—</div><div class="sk">평균 마진율</div></div>
-        <div class="stat-card"><div class="sv" id="ord-h-nu">—</div><div class="sk">미업로드</div></div>
+
+      <div class="ord-kpi-row" id="ord-h-kpi" style="display:none;">
+        <div class="ord-kpi-card tone-blue">
+          <div class="ord-kpi-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+          <div class="ord-kpi-body"><div class="ord-kpi-value" id="ord-h-total">—</div><div class="ord-kpi-label">전체 수주건</div></div>
+        </div>
+        <div class="ord-kpi-card tone-coral">
+          <div class="ord-kpi-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M19 5L5 19M6.5 8a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM17.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="ord-kpi-body"><div class="ord-kpi-value" id="ord-h-avg">—</div><div class="ord-kpi-label">평균 마진율</div></div>
+        </div>
+        <div class="ord-kpi-card tone-green">
+          <div class="ord-kpi-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 13v8m0-8l-3 3m3-3l3 3M20 16.58A5 5 0 0018 7h-1.26A8 8 0 104 15.25" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="ord-kpi-body"><div class="ord-kpi-value" id="ord-h-uc">—</div><div class="ord-kpi-label">누적 업로드 횟수</div></div>
+        </div>
+        <div class="ord-kpi-card tone-purple clickable" onclick="showOrdMakerReasonModal()">
+          <div class="ord-kpi-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M2 20a1 1 0 001 1h18a1 1 0 001-1V8l-7 5V8l-7 5V4a1 1 0 00-1.51-.86L2.5 6.5A1 1 0 002 7.37z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <div class="ord-kpi-body"><div class="ord-kpi-value" style="font-size:13.5px;">제조업체별</div><div class="ord-kpi-label">일괄 사유입력 →</div></div>
+        </div>
+        <div class="ord-kpi-card tone-indigo clickable" onclick="saveAllOrdHistoryReasons()">
+          <div class="ord-kpi-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <div class="ord-kpi-body"><div class="ord-kpi-value" style="font-size:13.5px;">사유 전체</div><div class="ord-kpi-label">일괄 저장 →</div></div>
+        </div>
       </div>
-      <div class="bulk-upload-bar" id="ord-bulk-bar" style="display:none;">
-        <span class="bulk-info" id="ord-bulk-info"></span>
-        <button class="btn btn-primary" onclick="showOrdBulkUploadModal()" id="ord-bulk-btn">📤 미업로드 일괄 업로드</button>
-      </div>
+
       <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th style="width:60px">수주자</th><th style="width:78px">수주일</th>
-            <th style="min-width:160px">수주처</th><th style="width:88px">품명코드</th>
-            <th style="min-width:200px">품명</th><th style="text-align:right;width:38px">수주량</th><th style="text-align:right;width:85px">수주단가</th>
-            <th style="width:100px">제조업체</th><th style="width:130px">발주처</th>
-            <th style="text-align:right;width:85px">발주단가</th>
-            <th style="text-align:right;width:48px">마진율</th>
-            <th style="min-width:240px;">
-              사유
-              <button onclick="saveAllOrdHistoryReasons()"
-                style="margin-left:8px;padding:2px 10px;font-size:10px;border-radius:5px;border:none;background:linear-gradient(135deg,#4a7fc1,#3a65a8);color:#fff;cursor:pointer;font-weight:700;vertical-align:middle;">
-                📋 전체 저장
-              </button>
-            </th>
-            <th style="width:68px">저장일</th><th style="width:68px">확인날짜</th><th style="width:70px">업로드</th><th style="width:44px">삭제</th>
+        <table class="ord-h-table" style="min-width:1700px;">
+          <thead><tr style="background:rgba(240,245,255,0.8);">
+            <th style="width:56px">수주자</th><th style="width:72px">수주일</th>
+            <th>수주처</th><th style="width:68px">품명코드</th>
+            <th>품명</th><th style="text-align:right;width:32px">수주량</th><th style="text-align:right;width:64px">수주단가</th>
+            <th style="width:76px">제조업체</th><th style="width:88px">발주처</th>
+            <th style="text-align:right;width:64px">발주단가</th>
+            <th style="text-align:right;width:38px">마진율</th>
+            <th>사유</th>
+            <th style="width:48px">저장일</th><th style="width:48px">확인날짜</th><th style="width:60px">업로드</th><th style="width:30px">삭제</th>
           </tr></thead>
           <tbody id="ord-h-tbody"></tbody>
         </table>
@@ -1081,7 +1119,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <table>
           <thead><tr>
             <th>반품일</th><th>담당자</th><th>코드</th><th>품명</th>
-            <th>수량</th><th>매입처</th><th>수주처</th><th>사유</th><th>처리내용</th><th>단가</th><th>합계</th><th>저장일</th><th>업로드</th><th>액션</th>
+            <th>수량</th><th>매입처</th><th>수주처</th><th style="max-width:220px;">사유</th><th>처리내용</th><th>단가</th><th>합계</th><th>저장일</th><th>업로드</th><th>액션</th>
           </tr></thead>
           <tbody id="ret-h-tbody"></tbody>
         </table>
@@ -1265,8 +1303,8 @@ function parseDate(s){
   return s;
 }
 
-async function sbFetch(baseUrl, key, path, method='GET', body=null) {
-  const opts={method,headers:{'Content-Type':'application/json','apikey':key,'Authorization':`Bearer ${key}`,'Prefer':'resolution=ignore-duplicates,return=minimal'}};
+async function sbFetch(baseUrl, key, path, method='GET', body=null, preferOverride=null) {
+  const opts={method,headers:{'Content-Type':'application/json','apikey':key,'Authorization':`Bearer ${key}`,'Prefer':preferOverride||'resolution=ignore-duplicates,return=minimal'}};
   if(body) opts.body=JSON.stringify(body);
   return fetch(baseUrl+path, opts);
 }
@@ -1496,7 +1534,7 @@ async function loadLowHistory(){
   document.getElementById('low-stats').innerHTML='';
   let qs=buildQueryString('low');
   try{
-    const resp=await fetch(`${UPLOADER_URL}/rest/v1/low_margin_shipments?${qs}&order=ship_date.asc&limit=500`,
+    const resp=await fetch(`${UPLOADER_URL}/rest/v1/low_margin_shipments?${qs}&order=ship_date.asc,id.asc&limit=500`,
       {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
@@ -1512,7 +1550,7 @@ async function loadLowHistory(){
       <td class="td-num">${fmt(r.cost_price)}</td>
       <td class="td-num">${fmt(r.sale_price)}</td>
       <td class="td-margin">${r.margin_rate!=null?r.margin_rate+'%':'-'}</td>
-      <td>${esc(r.reason||'-')}</td>
+      <td style="max-width:220px;white-space:normal;word-break:break-word;">${esc(r.reason||'-')}</td>
       <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
       <td>${r.is_uploaded
         ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);">✅ 완료</span>'
@@ -1569,25 +1607,55 @@ function resetLowFilter(){
 async function parseRetPdf(text, file){
   const docNoM  =text.match(/문서번호\s+(APR-\S+)/);
   const drafterM=text.match(/기안자\s+(\S+)/);
-  const changeM =text.match(/변경사유\s+(\S+)/);
-  if(!changeM||changeM[1]!=='반품') throw new Error('변경사유가 "반품"이 아닙니다');
-  const customerM=text.match(/거래처\s+(\S+)/);
-  const codeM2   =text.match(/제품코드\s+([\w\-]+)/);
-  const returnDM =text.match(/반품일\s+([\d\-]+)/);
-  const qtyM     =text.match(/수량\s+(\d+)/);
-  const priceM   =text.match(/수정단가\s+(\d[\d,]*)/);
-  const buyerM   =text.match(/매입처\s+(\S+)/);
-  const sayuM2   =text.match(/\s사유\s+([^\n]+)/);
-  // 품명 (여러 줄)
-  // 품명: 바로 앞줄 텍스트 + 품명 키워드 다음 텍스트 합치기
-  // 품명: 앞줄(VoneTex AMG Nitir) + 같은줄(le Glove XS(100pcs) + 다음줄 ) 합치기
-  // 품명: x좌표 기반으로 품명 셀(x:260~389) 텍스트 수집 (줄 수 무관)
+
+  // ── 양식 감지: 신양식("반품 요청서" 기안양식) / 구양식("변경사유"=반품 필드가 있는 매출가변경요청서) ──
+  const formTypeM = text.match(/기안양식\s+([^\n]+)/);
+  const isNewForm = !!(formTypeM && formTypeM[1].includes('반품'));
+  const changeM   = text.match(/변경사유\s+(\S+)/);
+  const isOldForm = !!(changeM && changeM[1]==='반품');
+  if(!isNewForm && !isOldForm) throw new Error('반품 요청서 양식이 아닙니다');
+
+  // 수주처(신양식) 또는 거래처(구양식)
+  const customerM = text.match(/수주처\s+(\S+)/) || text.match(/거래처\s+(\S+)/);
+  const codeM2    = text.match(/제품코드\s+([\w\-]+)/);
+  const returnDM  = text.match(/반품일\s+([\d\-]+)/);
+  const qtyM      = text.match(/수량\s+(\d+)/);
+  // 매입단가(신양식) 또는 수정단가(구양식)
+  const priceM    = text.match(/수정단가\s+(\d[\d,]*)/) || text.match(/매입단가\s+(\d[\d,]*)/);
+  const buyerM    = text.match(/매입처\s+(\S+)/);
+
+  // ── 사유 추출 ──
+  // 신양식: "사유" 라벨이 셀 세로중앙에 위치해 긴 문단 중간 줄에 끼어들어감 → 매입단가~※비고 사이 블록을 통째로 모아 라벨만 제거
+  // 구양식: 한 줄짜리라 기존 방식 그대로 사용
+  let sayuRaw = '';
+  const blockM = text.split(/매입단가[^\n]*\n/)[1];
+  if(blockM){
+    const block = blockM.split(/※\s*비고/)[0] || blockM;
+    sayuRaw = block.split('\n')
+      .map(l=>l.trim())
+      .filter(Boolean)
+      .map(l=>l.replace(/^사유\s*/,''))
+      .join('')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+  if(!sayuRaw){
+    const sayuM2 = text.match(/\s사유\s+([^\n]+)/);
+    sayuRaw = sayuM2 ? sayuM2[1].replace(/\s+/g,' ').trim() : '';
+  }
+
+  // ── 품명 추출 ──
+  // 신양식: "품명 xxx" 한 줄로 간단히 끝남 → 단순 정규식
+  // 구양식: 셀이 여러 줄로 나뉘어 있어 x/y좌표 기반 추출 필요
   let 품명 = '';
-  if(file) {
+  if(isNewForm){
+    const nmSimple = text.match(/품명\s+([^\n]+)/);
+    품명 = nmSimple ? nmSimple[1].replace(/\s+/g,' ').trim() : '';
+  }
+  if(!품명 && file) {
     try {
       const ab2 = await file.arrayBuffer();
       const pdf2 = await pdfjsLib.getDocument({data:ab2}).promise;
-      // 1단계: 1페이지 전체 아이템 수집
       const pg1 = await pdf2.getPage(1);
       const ct1 = await pg1.getTextContent();
       const vp1 = pg1.getViewport({scale:1});
@@ -1598,14 +1666,10 @@ async function parseRetPdf(text, file){
         const s = it.str.trim();
         if(s) allPg1.push({x, y, str:s});
       });
-
-      // 2단계: 품명 헤더 y좌표 찾기
       let nameHeaderY = -1;
       allPg1.forEach(it => {
         if(it.str === '품명' && it.x >= 200 && it.x <= 280) nameHeaderY = it.y;
       });
-
-      // 3단계: 품명 헤더 다음 행 레이블(수정단가/입고일/사유 등 x<200) y좌표 찾기 → 끝점
       let nameEndY = 9999;
       if(nameHeaderY > 0) {
         allPg1.forEach(it => {
@@ -1615,8 +1679,6 @@ async function parseRetPdf(text, file){
           }
         });
       }
-
-      // 4단계: 품명 컬럼(x:275~389) + y범위(nameHeaderY-15 ~ nameEndY-5)만 수집
       const nameItems = [];
       const yFrom = nameHeaderY > 0 ? nameHeaderY - 15 : 0;
       const yTo   = nameEndY - 5;
@@ -1631,20 +1693,20 @@ async function parseRetPdf(text, file){
       const nm = text.match(/품명\s+([\s\S]+?)(?=\s*원수주단가)/);
       품명 = nm ? nm[1].replace(/\s+/g,' ').trim() : '';
     }
-  } else {
+  }
+  if(!품명){
     const nm = text.match(/품명\s+([\s\S]+?)(?=\s*원수주단가)/);
     품명 = nm ? nm[1].replace(/\s+/g,' ').trim() : '';
   }
+
   const docNo   =docNoM?docNoM[1]:null;
   const drafter =drafterM?drafterM[1].replace(/(대리|과장|차장|부장|사원|이사|팀장|주임)$/,'').trim():null;
-  const 반품일  =parseDate(returnDM?returnDM[1]:null);
   const 수량    =qtyM?parseInt(qtyM[1]):0;
   const 단가    =priceM?parseInt(priceM[1].replace(/,/g,'')):0;
   const 합계    =수량*단가;  // kept for local calc
-  const sayuRaw =sayuM2?sayuM2[1].replace(/\s+/g,' ').trim():'';
   return{doc_no:docNo,rep:drafter,return_date:parseDate(returnDM?returnDM[1]:null),customer_name:customerM?customerM[1]:'',
     code:codeM2?codeM2[1]:'',item_name:품명,qty:수량,supplier:buyerM?buyerM[1]:'',
-    reason:sayuRaw,process:'반품',unit_price:단가,total:합계};
+    reason:sayuRaw,process:'',unit_price:단가,total:합계};
 }
 
 document.getElementById('ret-dropzone').addEventListener('dragover',e=>{e.preventDefault();e.currentTarget.classList.add('drag-over');});
@@ -1691,7 +1753,13 @@ function rebuildRet(){
       <td class="td-sub">${esc(r.supplier||'-')}</td>
       <td class="td-sub">${esc(r.customer_name||'-')}</td>
       <td class="sayu-cell"><textarea class="sayu-input" rows="2" oninput="retRows[${i}].reason=this.value">${esc(r.reason)}</textarea></td>
-      <td><span style="background:var(--warn-dim);color:var(--warn);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">${esc(r.process)}</span></td>
+      <td><select onchange="retRows[${i}].process=this.value" style="background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:600;">
+        <option value="" ${!r.process?'selected':''}>선택</option>
+        <option value="반품완료" ${r.process==='반품완료'?'selected':''}>반품완료</option>
+        <option value="재고사용" ${r.process==='재고사용'?'selected':''}>재고사용</option>
+        <option value="악성재고" ${r.process==='악성재고'?'selected':''}>악성재고</option>
+        <option value="반품처리중" ${r.process==='반품처리중'?'selected':''}>반품처리중</option>
+      </select></td>
       <td class="td-num">${fmt(r.unit_price)}</td>
       <td class="td-num" style="font-weight:700;color:var(--accent2)">${fmt(r.total)}</td>
     </tr>`).join('');
@@ -1701,6 +1769,8 @@ function rebuildRet(){
 
 async function saveRet(){
   if(!retRows.length) return;
+  const unselected = retRows.filter(r=>!r.process).length;
+  if(unselected>0){ alert(`처리내용을 선택하지 않은 행이 ${unselected}건 있습니다. 모두 선택해주세요.`); return; }
   const btn=document.getElementById('ret-save-btn');
   const res=document.getElementById('ret-result');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>저장 중...';
@@ -1710,7 +1780,11 @@ async function saveRet(){
       unit_price:r.unit_price,total:r.total,doc_no:r.doc_no}));
     const resp=await sbFetch(UPLOADER_URL,UPLOADER_KEY,'/rest/v1/return_shipments','POST',payload);
     if(resp.ok||resp.status===201){res.innerHTML='✅ 저장 완료!';res.className='action-result success';}
-    else{const e=await resp.json().catch(()=>({}));throw new Error(e.message||`HTTP ${resp.status}`);}
+    else{
+      const e=await resp.json().catch(()=>({}));
+      if(e.code==='23505'){ throw new Error('이미 저장된 문서입니다 (같은 문서번호+제품코드 조합이 이미 있어요). 중복 저장을 막기 위한 정상 동작이에요.'); }
+      throw new Error(e.message||`HTTP ${resp.status}`);
+    }
   }catch(e){res.textContent='❌ '+e.message;res.className='action-result error';}
   finally{btn.disabled=false;btn.innerHTML='💾 저장';}
 }
@@ -1745,7 +1819,7 @@ async function loadRetHistory(){
   document.getElementById('ret-stats').innerHTML='';
   let qs=buildQueryString('ret');
   try{
-    const resp=await fetch(`${UPLOADER_URL}/rest/v1/return_shipments?${qs}&order=return_date.asc&limit=500`,
+    const resp=await fetch(`${UPLOADER_URL}/rest/v1/return_shipments?${qs}&order=return_date.asc,id.asc&limit=500`,
       {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
@@ -1759,8 +1833,8 @@ async function loadRetHistory(){
       <td class="td-num">${fmt(r.qty)}</td>
       <td>${esc(r.supplier||'-')}</td>
       <td>${esc(r.customer_name||'-')}</td>
-      <td>${esc(r.reason||'-')}</td>
-      <td><span style="background:var(--warn-dim);color:var(--warn);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">${esc(r.process||'-')}</span></td>
+      <td style="max-width:220px;white-space:normal;word-break:break-word;">${esc(r.reason||'-')}</td>
+      <td>${(()=>{const p=r.process||'-';const c={반품완료:{bg:'rgba(56,184,126,0.12)',fg:'#38b87e'},재고사용:{bg:'rgba(74,127,193,0.12)',fg:'#4a7fc1'},악성재고:{bg:'rgba(220,80,80,0.12)',fg:'#d95f5f'},반품처리중:{bg:'var(--warn-dim)',fg:'var(--warn)'}}[p]||{bg:'var(--surface2)',fg:'var(--text-muted)'};return `<span style="background:${c.bg};color:${c.fg};font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">${esc(p)}</span>`;})()}</td>
       <td class="td-num">${fmt(r.unit_price)}</td>
       <td class="td-num" style="font-weight:700;color:var(--accent2)">${fmt(r.total)}</td>
       <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
@@ -2132,88 +2206,102 @@ async function uploadHistoryRow(tab, id) {
   }
 }
 
-// 히스토리 행 수정 (인라인) - 더블클릭
+// 히스토리 행 수정 - 팝업 모달 방식 (좁은 인라인 칸 대신 크게 보여줌)
+// 탭별 편집가능 컬럼 매핑 (td 인덱스 → {실제DB필드명, 입력타입, 라벨}) — 'reason' 타입은 원본 읽기전용 미리보기 + textarea로 특별 처리
+const HIST_FIELD_MAP = {
+  low: {0:{f:'ship_date',t:'date',label:'출고일'},1:{f:'customer_name',t:'text',label:'거래처'},2:{f:'rep',t:'text',label:'담당자'},
+        3:{f:'catalog_no',t:'text',label:'카달로그번호'},4:{f:'item_name',t:'text',label:'품명'},5:{f:'brand',t:'text',label:'브랜드'},
+        6:{f:'cost_price',t:'number',label:'입고가'},7:{f:'sale_price',t:'number',label:'출고가'},
+        8:{f:'margin_rate',t:'number',label:'마진율(%)'},9:{f:'reason',t:'reason',label:'사유'}},
+  ret: {0:{f:'return_date',t:'date',label:'반품일'},1:{f:'rep',t:'text',label:'담당자'},2:{f:'code',t:'text',label:'코드'},
+        3:{f:'item_name',t:'text',label:'품명'},4:{f:'qty',t:'number',label:'수량'},5:{f:'supplier',t:'text',label:'매입처'},
+        6:{f:'customer_name',t:'text',label:'수주처'},7:{f:'reason',t:'reason',label:'사유'},
+        9:{f:'unit_price',t:'number',label:'단가'},10:{f:'total',t:'number',label:'합계'}}
+};
+
+let _histEditCtx = null; // {tab, id}
+
 function editHistoryRow(tab, id, btn) {
   const tr = btn.closest('tr');
-  const isLow = tab === 'low';
-
-  // 이미 편집 중이면 저장
-  if(tr.dataset.editing === 'true') {
-    saveEditHistoryRow(tab, id, tr);
-    return;
-  }
-
-  tr.dataset.editing = 'true';
-  btn.textContent = '💾';
-  btn.title = '저장';
-
-  // 각 td에서 현재 텍스트값 읽어서 input으로 교체
+  const map = HIST_FIELD_MAP[tab];
   const tds = [...tr.querySelectorAll('td')];
-  const editableCols = isLow
-    ? {0:'date',1:'text',2:'text',3:'text',4:'text',5:'text',6:'number',7:'number',8:'number',9:'text'}
-    : {0:'date',1:'text',2:'text',3:'text',4:'number',5:'text',6:'text',7:'text',9:'number',10:'number'};
 
-  Object.entries(editableCols).forEach(([i, type]) => {
+  const gridParts = [];
+  const reasonParts = [];
+
+  Object.entries(map).forEach(([i, def]) => {
     const td = tds[parseInt(i)];
-    if(!td) return;
-    // 기존 텍스트 추출 (버튼/스팬 제외)
     let val = '';
-    const span = td.querySelector('span');
-    const inp = td.querySelector('input');
-    if(inp) { val = inp.value; }
-    else if(span) { val = span.textContent.trim(); }
-    else { val = td.textContent.trim(); }
-    val = val.replace(/%$/, '').replace(/,/g,'').trim();
-    td.innerHTML = `<input style="width:100%;min-width:60px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px;" type="${type}" value="${val}">`;
+    if(td){
+      const span = td.querySelector('span');
+      val = span ? span.textContent.trim() : td.textContent.trim();
+      val = val.replace(/%$/, '').replace(/,/g,'').trim();
+      if(val === '-') val = '';
+    }
+    if(def.t === 'reason'){
+      reasonParts.push(`<div style="margin-top:16px;">
+        <div style="font-size:11.5px;font-weight:700;color:var(--text-sub);margin-bottom:5px;">${def.label}</div>
+        <div style="font-size:12.5px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;margin-bottom:7px;max-height:110px;overflow-y:auto;white-space:pre-wrap;line-height:1.55;">${esc(val)||'(원본 사유 없음)'}</div>
+        <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:4px;">↓ 아래에 새로 쓸 사유를 입력하세요</div>
+        <textarea data-field="reason" rows="4" style="width:100%;background:var(--surface2);border:1.5px solid var(--accent);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;">${esc(val)}</textarea>
+      </div>`);
+    }else{
+      gridParts.push(`<div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:5px;">${def.label}</div>
+        <input data-field="${def.f}" type="${def.t}" value="${esc(val)}" style="width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;padding:9px 10px;color:var(--text);font-size:13px;box-sizing:border-box;">
+      </div>`);
+    }
   });
+
+  const fieldsHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">${gridParts.join('')}</div>${reasonParts.join('')}`;
+
+  document.getElementById('hist-edit-fields').innerHTML = fieldsHtml;
+  _histEditCtx = {tab, id};
+  document.getElementById('hist-edit-modal').style.display = 'flex';
 }
 
-async function saveEditHistoryRow(tab, id, tr) {
-  const isLow = tab === 'low';
-  const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
-  const cells = [...tr.querySelectorAll('td')];
-  const inputs = tr.querySelectorAll('input');
+function closeHistEditModal(){
+  document.getElementById('hist-edit-modal').style.display = 'none';
+  _histEditCtx = null;
+}
 
-  let update = {};
-  if(isLow){
-    update = {
-      ship_date:     inputs[0]?.value||null,
-      customer_name: inputs[1]?.value.trim()||null,
-      rep:           inputs[2]?.value.trim()||null,
-      catalog_no:    inputs[3]?.value.trim()||null,
-      item_name:     inputs[4]?.value.trim()||null,
-      brand:         inputs[5]?.value.trim()||null,
-      cost_price:    parseFloat(inputs[6]?.value)||null,
-      sale_price:    parseFloat(inputs[7]?.value)||null,
-      margin_rate:   parseFloat(inputs[8]?.value)||null,
-      reason:        inputs[9]?.value.trim()||null,
-    };
-  } else {
-    update = {
-      return_date:   inputs[0]?.value||null,
-      rep:           inputs[1]?.value.trim()||null,
-      code:          inputs[2]?.value.trim()||null,
-      item_name:     inputs[3]?.value.trim()||null,
-      qty:           parseFloat(inputs[4]?.value)||null,
-      supplier:      inputs[5]?.value.trim()||null,
-      customer_name: inputs[6]?.value.trim()||null,
-      reason:        inputs[7]?.value.trim()||null,
-      unit_price:    parseFloat(inputs[8]?.value)||null,
-      total:         parseFloat(inputs[9]?.value)||null,
-    };
-  }
+async function saveHistEditModal(){
+  if(!_histEditCtx) return;
+  const {tab, id} = _histEditCtx;
+  const tbl = tab === 'low' ? 'low_margin_shipments' : 'return_shipments';
+  const map = HIST_FIELD_MAP[tab];
+  const container = document.getElementById('hist-edit-fields');
 
-  const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
-    method:'PATCH',
-    headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
-    body:JSON.stringify(update)
+  const update = {};
+  Object.values(map).forEach(def => {
+    const el = container.querySelector(`[data-field="${def.f}"]`);
+    if(!el) return;
+    const raw = el.value;
+    update[def.f] = def.t === 'number'
+      ? (raw !== '' ? parseFloat(raw) : null)
+      : (raw.trim() || null);
   });
 
-  if(resp.ok){
-    setStatus('✏️ 수정 완료!','','success');
-    if(isLow) loadLowHistory(); else loadRetHistory();
-  } else {
-    alert('❌ 수정 실패');
+  const btn = document.getElementById('hist-edit-save-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+
+  try{
+    const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
+      body:JSON.stringify(update)
+    });
+    if(resp.ok){
+      setStatus('✏️ 수정 완료!','','success');
+      closeHistEditModal();
+      if(tab==='low') loadLowHistory(); else loadRetHistory();
+    }else{
+      alert('❌ 수정 실패');
+    }
+  }catch(e){
+    alert('❌ 오류: '+e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = '💾 저장';
   }
 }
 
@@ -2653,8 +2741,35 @@ async function doSaveOrd() {
     btn.disabled=false; btn.textContent='💾 저장';
   }
 }
+// ── 클립보드 복사 3단계 폴백 (회사 데스크탑에서 Clipboard API가 막혀도 항상 복사되게) ──
+function copyTextSmart(text){
+  return new Promise((resolve)=>{
+    // 1단계: 표준 Clipboard API (보안 컨텍스트 + 권한 필요)
+    if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(()=>resolve(true)).catch(()=>resolve(fallbackCopy(text)));
+    }else{
+      resolve(fallbackCopy(text));
+    }
+  });
+}
+// 2단계: 구형/비보안 컨텍스트용 execCommand 폴백
+function fallbackCopy(text){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.style.position='fixed';ta.style.top='-9999px';ta.style.left='-9999px';
+    document.body.appendChild(ta);
+    ta.focus();ta.select();
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    if(ok) return true;
+  }catch(e){/* 3단계로 폴백 */}
+  // 3단계: 둘 다 실패하면 수동 복사할 수 있게 프롬프트로 노출
+  window.prompt('자동 복사가 지원되지 않는 환경입니다. 아래 내용을 직접 복사(Ctrl+C)해주세요:', text);
+  return false;
+}
 function copyOrdGroupLink(link,name){
-  navigator.clipboard.writeText(link).then(()=>showToast(`🔗 ${name} 링크 복사됨`,'success'));
+  copyTextSmart(link).then(ok=>{ if(ok) showToast(`🔗 ${name} 링크 복사됨`,'success'); });
 }
 async function saveOrd(){showOrdMonthModal();}
 
@@ -2695,16 +2810,16 @@ function renderOrdLinks(savedRows) {
 }
 
 function copyOrdLink(link, orderer, customer) {
-  navigator.clipboard.writeText(link).then(() => {
-    showToast(`🔗 ${orderer} / ${customer} 링크 복사됨`,'success');
+  copyTextSmart(link).then(ok => {
+    if(ok) showToast(`🔗 ${orderer} / ${customer} 링크 복사됨`,'success');
   });
 }
 
 function copyAllOrdLinks() {
   const btn = document.getElementById('ord-copy-all-btn');
   if(!btn || !btn._links) return;
-  navigator.clipboard.writeText(btn._links).then(() => {
-    showToast(`📋 전체 링크 복사됨 — 메일에 붙여넣으세요`,'success');
+  copyTextSmart(btn._links).then(ok => {
+    if(ok) showToast(`📋 전체 링크 복사됨 — 메일에 붙여넣으세요`,'success');
   });
 }
 
@@ -2713,10 +2828,10 @@ async function uploadOrd() {
   showToast('먼저 💾 저장 후 히스토리 탭에서 이슈모니터 업로드하세요.', 'warn');
 }
 
-// 히스토리 탭 일괄 업로드 - 월 선택 후 실행
+// 히스토리 탭 일괄 업로드 - 월 선택 후 실행 (상태 무관, 화면에 조회된 전체 건 대상 — 재업로드 포함)
 function showOrdBulkUploadModal() {
-  const bar = document.getElementById('ord-bulk-bar');
-  if(!bar._data || !bar._data.length){ alert('업로드할 데이터가 없습니다.'); return; }
+  const rows = window._ordHistoryFiltered || [];
+  if(!rows.length){ alert('업로드할 데이터가 없습니다. 먼저 조회해주세요.'); return; }
   const now = new Date();
   // 필터에서 년/월 선택돼 있으면 그걸로 기본값 세팅
   const yr = document.getElementById('ord-h-year')?.value;
@@ -2728,21 +2843,31 @@ function showOrdBulkUploadModal() {
   document.getElementById('ord-bulk-month-modal').style.display = 'flex';
 }
 
+// 누적 업로드 횟수 (이 브라우저 기준 로컬 카운터 — "이 버튼을 몇 번 실행했는지")
+function getOrdUploadCount(){ return parseInt(localStorage.getItem('ord_bulk_upload_count')||'0',10); }
+function bumpOrdUploadCount(){
+  const n = getOrdUploadCount()+1;
+  localStorage.setItem('ord_bulk_upload_count', String(n));
+  return n;
+}
+function refreshOrdUploadCountDisplay(){
+  const n = getOrdUploadCount();
+  const label = document.getElementById('ord-bulk-count');
+  if(label) label.textContent = n>0 ? `(${n}회 실행됨)` : '';
+  const kpi = document.getElementById('ord-h-uc');
+  if(kpi) kpi.textContent = n+'회';
+}
+
 async function bulkUploadOrd() {
-  const bar  = document.getElementById('ord-bulk-bar');
-  const btn  = document.getElementById('ord-bulk-btn');
-  const info = document.getElementById('ord-bulk-info');
-  const rows = bar._data;
-  if(!rows || !rows.length){ alert('업로드할 데이터가 없습니다.'); return; }
+  const rows = window._ordHistoryFiltered || [];
+  if(!rows.length){ alert('업로드할 데이터가 없습니다.'); return; }
 
   const ym = document.getElementById('ord-bulk-month-input').value;
   if(!ym){ alert('월을 선택해주세요.'); return; }
   document.getElementById('ord-bulk-month-modal').style.display = 'none';
+  showToast(`${rows.length}건 이슈모니터로 업로드(재업로드 포함) 중...`,'');
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>업로드 중...';
-
-  // 이슈모니터에 insert할 payload (is_uploaded, id, created_at 제외)
+  // merge-duplicates: 이슈모니터에 이미 있으면 최신 값(사유 등)으로 덮어쓰고, 없으면 새로 insert — 상태 무관 항상 동일하게 동작
   const payload = rows.map(r => {
     const obj = {...r};
     delete obj.id;
@@ -2752,11 +2877,12 @@ async function bulkUploadOrd() {
   });
 
   try {
-    const uploadResp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/orders', 'POST', payload);
+    const uploadResp = await sbFetch(ISSUE_URL, ISSUE_KEY, '/rest/v1/orders', 'POST', payload,
+      'resolution=merge-duplicates,return=minimal');
 
-    if(uploadResp.ok || uploadResp.status === 201 || uploadResp.status === 409) {
-      // 업로더DB is_uploaded = true 일괄 업데이트
-      const ids = bar._ids;
+    if(uploadResp.ok || uploadResp.status === 201 || uploadResp.status === 204) {
+      // 업로더DB is_uploaded = true 일괄 업데이트 (참고용 표시일 뿐, 이제 업로드 가능 여부와는 무관)
+      const ids = rows.map(r=>r.id);
       await fetch(`${UPLOADER_URL}/rest/v1/orders?id=in.(${ids.join(',')})`, {
         method: 'PATCH',
         headers: {
@@ -2766,35 +2892,85 @@ async function bulkUploadOrd() {
         },
         body: JSON.stringify({is_uploaded: true})
       });
-
-      info.innerHTML = `✅ <strong>${rows.length}건</strong> 이슈모니터 업로드 완료!`;
-      info.style.color = 'var(--success)';
-      btn.style.display = 'none';
-      bar._data = [];
-      bar._ids  = [];
-
+      const cnt = bumpOrdUploadCount();
+      refreshOrdUploadCountDisplay();
+      showToast(`✅ ${rows.length}건 이슈모니터 업로드 완료! (누적 ${cnt}회)`,'success');
       setTimeout(() => loadOrdHistory(), 1000);
     } else {
-      const e = await uploadResp.json().catch(() => ({}));
-      if(e.code === '23505') {
-        const ids = bar._ids;
-        await fetch(`${UPLOADER_URL}/rest/v1/orders?id=in.(${ids.join(',')})`, {
-          method: 'PATCH',
-          headers: {'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
-          body: JSON.stringify({is_uploaded:true})
-        });
-        info.innerHTML = '⚠️ 일부 중복 포함 — 신규건 업로드됨';
-        setTimeout(() => loadOrdHistory(), 1000);
-      } else {
-        throw new Error(e.message || `HTTP ${uploadResp.status}`);
-      }
+      const errBody = await uploadResp.text().catch(() => '');
+      console.error('업로드 실패', uploadResp.status, errBody);
+      throw new Error(`HTTP ${uploadResp.status}`);
     }
   } catch(e) {
-    info.innerHTML = '❌ 오류: ' + e.message;
-    info.style.color = 'var(--danger)';
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '📤 미업로드 일괄 업로드';
+    showToast('업로드 오류: '+e.message,'error');
+  }
+}
+
+// ── 제조업체별 일괄 사유입력 (같은 제조업체는 이미 확인받은 공통 사유로 한 번에 처리) ──
+let _ordMakerList = [];
+function showOrdMakerReasonModal(){
+  const rows = window._ordHistoryFiltered || [];
+  if(!rows.length){ alert('불러온 데이터가 없습니다. 먼저 조회해주세요.'); return; }
+  const makers = [...new Set(rows.map(r=>r.maker).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+  if(!makers.length){ alert('제조업체 정보가 있는 데이터가 없습니다.'); return; }
+  _ordMakerList = makers;
+  const listEl = document.getElementById('ord-maker-reason-list');
+  listEl.innerHTML = makers.map((m,i)=>{
+    const cnt = rows.filter(r=>r.maker===m).length;
+    return `<div class="mkr-row">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" data-idx="${i}" onchange="toggleMakerReasonInput(this)">
+        <span style="font-weight:700;font-size:13px;color:#1a2a3a;">${m}</span>
+        <span style="color:#8aa0b8;font-size:11px;">(${cnt}건)</span>
+      </label>
+      <input type="text" class="mkr-reason-input" data-idx="${i}" placeholder="이 제조업체에 적용할 사유 문구 (예: SIGMA 브랜드 — 마진 정책상 확인 완료)"
+        style="display:none;width:100%;margin-top:6px;padding:8px 11px;border:1.5px solid #d0c0f0;border-radius:8px;font-size:12.5px;font-family:inherit;outline:none;background:#faf8ff;">
+    </div>`;
+  }).join('');
+  document.getElementById('ord-maker-reason-modal').style.display='flex';
+}
+function toggleMakerReasonInput(cb){
+  const idx = cb.dataset.idx;
+  const input = document.querySelector(`.mkr-reason-input[data-idx="${idx}"]`);
+  input.style.display = cb.checked ? 'block' : 'none';
+  if(cb.checked) input.focus();
+}
+function closeOrdMakerReasonModal(){
+  document.getElementById('ord-maker-reason-modal').style.display='none';
+}
+async function applyOrdMakerReasons(){
+  const checked = document.querySelectorAll('#ord-maker-reason-list input[type=checkbox]:checked');
+  const targets = [];
+  checked.forEach(cb=>{
+    const idx = cb.dataset.idx;
+    const input = document.querySelector(`.mkr-reason-input[data-idx="${idx}"]`);
+    const reason = input.value.trim();
+    if(reason) targets.push({maker:_ordMakerList[idx], reason});
+  });
+  if(!targets.length){ alert('제조업체를 선택하고 사유를 입력해주세요.'); return; }
+
+  const allRows = window._ordHistoryFiltered || [];
+  const btn = document.getElementById('ord-maker-reason-apply-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  let totalCount = 0;
+  try{
+    for(const {maker, reason} of targets){
+      const ids = allRows.filter(r=>r.maker===maker).map(r=>r.id);
+      if(!ids.length) continue;
+      await fetch(`${ORD_SUPA_URL}/rest/v1/orders?id=in.(${ids.join(',')})`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
+        body: JSON.stringify({reason, reason_at: new Date().toISOString()})
+      });
+      totalCount += ids.length;
+    }
+    showToast(`✅ 제조업체 ${targets.length}개, 총 ${totalCount}건 사유 일괄 저장 완료`,'success');
+    closeOrdMakerReasonModal();
+    setTimeout(()=>loadOrdHistory(), 600);
+  }catch(e){
+    showToast('저장 오류: '+e.message,'error');
+  }finally{
+    btn.disabled=false; btn.textContent='💾 선택한 제조업체 일괄 저장';
   }
 }
 
@@ -2805,7 +2981,7 @@ async function loadOrdHistory() {
   const curYear = new Date().getFullYear();
   const y = (year && year!=='--년도--' && year!=='전체') ? year : '';
 
-  let url = `${ORD_SUPA_URL}/rest/v1/orders?order=created_at.desc&limit=500`;
+  let url = `${ORD_SUPA_URL}/rest/v1/orders?order=order_date.asc,id.asc&limit=500`;
   if(y && month) {
     const nm = month==='12' ? `${parseInt(y)+1}-01` : `${y}-${String(parseInt(month)+1).padStart(2,'0')}`;
     url += `&created_at=gte.${y}-${month}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`;
@@ -2851,6 +3027,7 @@ async function loadOrdHistory() {
     const filtered = keyword
       ? dedupedRows.filter(r=>((r.customer_name||'')+(r.item_name||'')+(r.orderer||'')).toLowerCase().includes(keyword.toLowerCase()))
       : dedupedRows;
+    window._ordHistoryFiltered = filtered; // 제조업체별 일괄 사유입력 모달에서 사용
     const tbody = document.getElementById('ord-h-tbody');
     if(!tbody) return;
     const kpiEl = document.getElementById('ord-h-kpi');
@@ -2862,26 +3039,7 @@ async function loadOrdHistory() {
       const avg = filtered.reduce((s,r)=>s+(r.margin_rate||0),0)/filtered.length;
       avgEl.textContent = avg.toFixed(1)+'%';
     }
-    // 미업로드 KPI + 일괄업로드 바
-    const notUploaded = filtered.filter(r=>!r.is_uploaded);
-    const nuEl = document.getElementById('ord-h-nu');
-    if(nuEl){ nuEl.textContent = notUploaded.length+'건'; nuEl.parentElement.querySelector('.sk').style.color = notUploaded.length>0?'var(--danger)':''; }
-    const bar = document.getElementById('ord-bulk-bar');
-    const info = document.getElementById('ord-bulk-info');
-    if(bar && info){
-      if(notUploaded.length > 0){
-        bar.style.display = 'flex';
-        const yr2 = document.getElementById('ord-h-year')?.value;
-        const mo2 = document.getElementById('ord-h-month')?.value;
-        const periodTxt2 = yr2 && mo2 ? `${yr2}-${String(mo2).padStart(2,'0')} ` : yr2 ? `${yr2}년 ` : '';
-        info.innerHTML = `${periodTxt2}미업로드 <strong>${notUploaded.length}건</strong> 이슈모니터에 업로드할 수 있습니다`;
-        document.getElementById('ord-bulk-btn').textContent = `📤 ${periodTxt2}미업로드 ${notUploaded.length}건 일괄 업로드`;
-        bar._ids = notUploaded.map(r=>r.id);
-        bar._data = notUploaded;
-      } else {
-        bar.style.display = 'none';
-      }
-    }
+    refreshOrdUploadCountDisplay();
 
     // 수주자별 그룹핑
     const groups = {};
@@ -2893,15 +3051,18 @@ async function loadOrdHistory() {
     const sortedKeys = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ko'));
 
     let html = '';
-    sortedKeys.forEach(name => {
+    const GRP_TONE = {bg:'rgba(232,240,252,.65)', bar:'#4a7fc1'}; // 전체 그룹 통일톤 (블루)
+    sortedKeys.forEach((name, gIdx) => {
       const grpRows = groups[name];
+      const tone = GRP_TONE;
       const avgMg = grpRows.reduce((s,r)=>s+(r.margin_rate||0),0)/grpRows.length;
       const reasonCount = grpRows.filter(r=>r.reason).length;
       const linkYm = y && month ? `${y}-${month.padStart(2,'0')}` : y ? y+'-'+String(new Date().getMonth()+1).padStart(2,'0') : '';
       const link = `${location.origin}/reason.html?ord=${encodeURIComponent(name)}${linkYm?'&ym='+linkYm:''}`;
-      html += `<tr style="background:rgba(240,245,255,.8);">
-        <td colspan="13" style="padding:8px 13px;font-weight:700;font-size:12px;color:#4a6a8a;border-top:2px solid rgba(180,200,230,.4);">
-          👤 <span style="color:#1a2a3a">${name}</span>
+      html += `<tr style="background:${tone.bg};">
+        <td colspan="16" style="padding:8px 13px 8px 11px;font-weight:700;font-size:12px;color:#4a6a8a;border-top:2px solid rgba(180,200,230,.4);border-left:4px solid ${tone.bar};">
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13" style="vertical-align:-2px;margin-right:2px;"><circle cx="12" cy="8" r="4" stroke="#4a7fc1" stroke-width="2"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="#4a7fc1" stroke-width="2" stroke-linecap="round"/></svg>
+          <span style="color:#1a2a3a">${name}</span>
           <span style="background:rgba(74,127,193,.12);color:#4a7fc1;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px;">${grpRows.length}건</span>
           <span style="background:rgba(220,80,80,.1);color:#d95f5f;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:4px;">평균 ${avgMg.toFixed(1)}%</span>
           <span style="background:${reasonCount===grpRows.length?'rgba(46,158,110,.12)':'rgba(200,140,20,.1)'};color:${reasonCount===grpRows.length?'#2e9e6e':'#b08010'};font-size:10px;padding:2px 8px;border-radius:4px;margin-left:4px;">사유 ${reasonCount}/${grpRows.length}</span>
@@ -2911,18 +3072,18 @@ async function loadOrdHistory() {
       grpRows.forEach(r => {
         const mgDisp = r.margin_rate!=null ? Math.round(r.margin_rate)+'%' : '—';
         html += `<tr>
-          <td style="white-space:nowrap;font-size:12px">${r.orderer||'—'}</td>
-          <td style="white-space:nowrap;font-size:12px">${(r.order_date||'').slice(0,10)}</td>
+          <td style="font-size:12px" title="${r.orderer||''}">${r.orderer||'—'}</td>
+          <td style="font-size:12px" title="${(r.order_date||'').slice(0,10)}">${(r.order_date||'').slice(0,10)}</td>
           <td style="font-size:12px">${r.customer_name||'—'}</td>
-          <td style="font-size:11px;color:#5a7a9a;white-space:nowrap">${r.item_code||'—'}</td>
-          <td style="font-size:12px">${(r.item_name && r.item_name !== r.item_code) ? r.item_name : '—'}</td>
+          <td style="font-size:11px;color:#5a7a9a" title="${r.item_code||''}">${r.item_code||'—'}</td>
+          <td class="ord-wrap" style="font-size:12px;max-width:230px;">${(r.item_name && r.item_name !== r.item_code) ? r.item_name : '—'}</td>
           <td style="text-align:right;font-size:12px">${r.order_qty||'—'}</td>
-          <td style="text-align:right;white-space:nowrap;font-size:12px">${r.order_price?Number(r.order_price).toLocaleString():'—'}</td>
-          <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.maker||''}">${r.maker||'—'}</td>
-          <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.po_vendor||''}">${r.po_vendor||'—'}</td>
-          <td style="text-align:right;white-space:nowrap;font-size:12px">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
-          <td style="text-align:right;color:var(--danger);font-weight:700;white-space:nowrap">${mgDisp}</td>
-          <td style="min-width:220px;">
+          <td style="text-align:right;font-size:12px" title="${r.order_price?Number(r.order_price).toLocaleString():''}">${r.order_price?Number(r.order_price).toLocaleString():'—'}</td>
+          <td style="font-size:11px" title="${r.maker||''}">${r.maker||'—'}</td>
+          <td style="font-size:11px" title="${r.po_vendor||''}">${r.po_vendor||'—'}</td>
+          <td style="text-align:right;font-size:12px" title="${r.po_price?Number(r.po_price).toLocaleString():''}">${r.po_price?Number(r.po_price).toLocaleString():'—'}</td>
+          <td style="text-align:right;color:var(--danger);font-weight:700;">${mgDisp}</td>
+          <td class="ord-wrap" style="min-width:220px;">
             ${r.reason
               ? `<div style="display:flex;gap:6px;align-items:center;">
                    <span id="ord-h-reason-text-${r.id}" style="flex:1;color:#1a2a3a;font-size:12.5px;">${r.reason}</span>
@@ -2943,22 +3104,22 @@ async function loadOrdHistory() {
                  </div>`
             }
           </td>
-          <td style="font-size:11px;color:var(--text-muted);white-space:nowrap">${(r.created_at||'').slice(0,10)}</td>
-          <td style="font-size:11px;white-space:nowrap;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}">${r.reason_at?(r.reason_at.slice(0,10)):'미확인'}</td>
+          <td style="font-size:11px;color:var(--text-muted);" title="${(r.created_at||'').slice(0,10)}">${(r.created_at||'').slice(2,10)}</td>
+          <td style="font-size:11px;${r.reason_at?'color:#2e9e6e;font-weight:700;':'color:#ccc;'}" title="${r.reason_at||''}">${r.reason_at?(r.reason_at.slice(2,10)):'미확인'}</td>
           <td style="white-space:nowrap;">${r.is_uploaded
-            ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>'
-            : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미업로드</span>'
+            ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>'
+            : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미완료</span>'
           }</td>
           <td style="text-align:center;"><button onclick="deleteOrdRow('${r.id}')" title="삭제" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:#c04040;">🗑️</button></td>
         </tr>`;
       });
     });
-    tbody.innerHTML = html || `<tr><td colspan="13" style="text-align:center;padding:40px;color:#aaa;">데이터가 없습니다</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="16" style="text-align:center;padding:40px;color:#aaa;">데이터가 없습니다</td></tr>`;
   } catch(e) { console.error('히스토리 로드 오류',e); }
 }
 
 async function saveAllOrdHistoryReasons() {
-  const inputs = document.querySelectorAll('[id^="ord-h-reason-"]');
+  const inputs = document.querySelectorAll('input[id^="ord-h-reason-"]');
   const updates = [];
   inputs.forEach(el => {
     const reason = el.value.trim();
@@ -3183,6 +3344,36 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
         style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
       <button onclick="bulkUploadOrd()"
         style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#9356db,#6d3ab8);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">📤 업로드</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 제조업체별 일괄 사유입력 모달 ══ -->
+<!-- ══ 히스토리 행 수정 모달 (10%미만출고건 / 반품처리건 공용) ══ -->
+<div id="hist-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(20,30,45,.6);z-index:9999;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto;">
+  <div style="background:var(--surface,#1a1d2e);border-radius:18px;padding:26px 28px;width:min(820px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.4);margin-bottom:40px;">
+    <div style="display:flex;align-items:center;margin-bottom:18px;">
+      <div style="font-size:16px;font-weight:800;color:var(--text);">✏️ 항목 수정</div>
+      <button onclick="closeHistEditModal()" style="margin-left:auto;border:none;background:none;font-size:18px;cursor:pointer;color:var(--text-muted);">✕</button>
+    </div>
+    <div id="hist-edit-fields" style="display:flex;flex-direction:column;gap:14px;"></div>
+    <div style="display:flex;gap:10px;margin-top:22px;">
+      <button onclick="closeHistEditModal()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border2);background:transparent;color:var(--text);font-size:14px;cursor:pointer;">취소</button>
+      <button onclick="saveHistEditModal()" id="hist-edit-save-btn" style="flex:1.4;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),#3a65a8);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="ord-maker-reason-modal" style="display:none;position:fixed;inset:0;background:rgba(30,50,80,.55);z-index:9998;align-items:flex-start;justify-content:center;padding-top:60px;overflow-y:auto;">
+  <div style="background:#fff;border-radius:20px;padding:28px 26px;width:min(560px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.25);margin-bottom:40px;">
+    <div style="font-size:17px;font-weight:800;color:#1a2a3a;margin-bottom:4px;">🏭 제조업체별 일괄 사유입력</div>
+    <div style="font-size:12.5px;color:#4a6a8a;margin-bottom:18px;line-height:1.6;">사유를 적용할 제조업체를 체크하면 입력칸이 열려요. 여러 개 선택해서 한 번에 저장할 수 있어요.<br>현재 화면(조회된 목록)에 있는 건에만 적용됩니다.</div>
+    <div id="ord-maker-reason-list" style="display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow-y:auto;padding-right:4px;"></div>
+    <div style="display:flex;gap:10px;margin-top:22px;">
+      <button onclick="closeOrdMakerReasonModal()"
+        style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
+      <button onclick="applyOrdMakerReasons()" id="ord-maker-reason-apply-btn"
+        style="flex:1.4;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c5cc4,#5a3fa0);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💾 선택한 제조업체 일괄 저장</button>
     </div>
   </div>
 </div>
