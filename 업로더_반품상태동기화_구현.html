@@ -1,0 +1,196 @@
+<!--
+  반품처리건 상태(처리내용) 변경 → 이슈모니터 자동 동기화 스크립트
+  드림셀 업로더(dc-uploader-pied) 삽입용
+
+  ================= 왜 필요한지 =================
+  반품 건이 처음 보고될 땐 "처리중"이나 "악성재고" 상태로 들어가지만,
+  나중에 실제로 처리(반품완료/재고사용 등)가 되면 상태를 바꿔야 함.
+  근데 업로더 DB랑 이슈모니터 DB는 완전히 분리된 테이블이라 한쪽만 바꾸면
+  다른 쪽은 낡은 상태로 계속 남아있게 됨 — 그래서 상태 변경 시 양쪽에 같이 반영되게 만듦.
+
+  ================= 동작 방식 =================
+  - "히스토리" 탭 표의 "처리내용" 배지를 클릭하면 작은 드롭다운(처리중/악성재고/재고사용/반품완료)이 뜸
+  - 하나를 선택하면:
+    1. 이슈모니터에서 같은 건을 반품일+코드+담당자+수주처 4개 값으로 먼저 찾아봄
+    2. 정확히 1건만 찾아지면 → 업로더 행 + 이슈모니터 행 둘 다 새 상태로 변경 (트랜잭션처럼 둘 다 되거나 둘 다 안 됨)
+    3. 0건이거나 2건 이상 찾아지면 → 아무것도 바꾸지 않고 경고 문구를 띄움
+       (0건 = 이슈모니터에 아직 그 건이 없는 경우, 2건 이상 = 완전히 같은 조합의 건이 여러 개 있어서
+        자동으로는 어느 걸 바꿔야 할지 알 수 없는 경우 — 이럴 땐 이슈모니터에서 직접 확인해서 수동으로 바꿔줘야 함)
+
+  ================= 실제로 겪은 문제 (참고용) =================
+  개발 중 테스트하다가 "71175" 코드 건이 완전히 똑같은 반품일/담당자/수주처 조합으로
+  2줄 들어가 있는 걸 발견해서(수량/사유는 같고 처리내용 메모만 다른 케이스),
+  4개 조합만으로는 구분이 안 되는 경우가 실제로 있다는 걸 확인했음.
+  그래서 "정확히 1건일 때만 자동 반영" 규칙을 넣은 것 — 이런 케이스는 안전하게 건너뛰고
+  경고만 띄우니, 뜨면 이슈모니터에서 직접 확인해서 수동으로 바꿔줘야 함.
+
+  ================= 붙여넣는 방법 =================
+  index.html 맨 마지막 </body> 태그 바로 앞에 이 <script>~</script>를 붙여넣기.
+  기존 코드는 전혀 건드리지 않음.
+-->
+<script>
+(function(){
+  const STATUS_OPTS = ['처리중','악성재고','재고사용','반품완료'];
+  const STATUS_COLOR = { '처리중':'#6b7280', '악성재고':'#dc2626', '재고사용':'#2563eb', '반품완료':'#16a34a' };
+
+  function findSbCreds(){
+    const scripts = Array.from(document.querySelectorAll('script'));
+    const big = scripts.find(s => (s.textContent||'').length > 50000);
+    if(!big) return null;
+    const txt = big.textContent;
+    const urls = [...new Set((txt.match(/https:\/\/[a-z0-9]+\.supabase\.co/g) || []))];
+    const keys = [...new Set((txt.match(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g) || []))];
+    return { urls, keys };
+  }
+
+  let CREDS = { uploader:null, issue:null };
+
+  async function resolveCreds(){
+    const found = findSbCreds();
+    if(!found) return;
+    for(const url of found.urls){
+      for(const key of found.keys){
+        try{
+          const res = await fetch(url + '/rest/v1/return_shipments?select=id&limit=1', { headers:{ apikey:key, Authorization:'Bearer '+key } });
+          if(res.ok){
+            if(url.includes('uvplpljddxqojiekbxjg')) CREDS.uploader = { url, key };
+            else CREDS.issue = { url, key };
+          }
+        }catch(e){}
+      }
+    }
+  }
+
+  function closePopup(){
+    const p = document.getElementById('status-popup');
+    if(p) p.remove();
+  }
+
+  function showToast(msg, isWarn){
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' +
+      (isWarn ? '#fef3c7' : '#111') + ';color:' + (isWarn ? '#92400e' : '#fff') +
+      ';padding:10px 18px;border-radius:8px;font-size:13px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.2);max-width:80%;text-align:center;';
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(), isWarn ? 4000 : 2000);
+  }
+
+  async function applyStatusChange(rowId, key, newStatus, badgeEl){
+    closePopup();
+    const origText = badgeEl.textContent;
+    badgeEl.textContent = '확인중...';
+    try{
+      const qs = 'return_date=eq.' + key.date + '&code=eq.' + encodeURIComponent(key.code) +
+        '&rep=eq.' + encodeURIComponent(key.rep) + '&customer_name=eq.' + encodeURIComponent(key.customer) + '&select=id';
+      const checkRes = await fetch(CREDS.issue.url + '/rest/v1/return_shipments?' + qs, {
+        headers:{ apikey:CREDS.issue.key, Authorization:'Bearer '+CREDS.issue.key }
+      });
+      const matches = await checkRes.json();
+
+      if(matches.length !== 1){
+        badgeEl.textContent = origText;
+        showToast(
+          matches.length === 0
+            ? '이슈모니터에서 같은 건을 못 찾았어요. 자동 변경을 건너뛰었어요.'
+            : '똑같은 조합의 건이 이슈모니터에 ' + matches.length + '개 있어서 자동으로 못 바꿨어요. 이슈모니터에서 직접 확인해줘요.',
+          true
+        );
+        return;
+      }
+
+      badgeEl.textContent = '저장중...';
+      const upRes = await fetch(CREDS.uploader.url + '/rest/v1/return_shipments?id=eq.' + rowId, {
+        method:'PATCH',
+        headers:{ apikey:CREDS.uploader.key, Authorization:'Bearer '+CREDS.uploader.key, 'Content-Type':'application/json', Prefer:'return=representation' },
+        body: JSON.stringify({ process: newStatus })
+      });
+      const isRes = await fetch(CREDS.issue.url + '/rest/v1/return_shipments?id=eq.' + matches[0].id, {
+        method:'PATCH',
+        headers:{ apikey:CREDS.issue.key, Authorization:'Bearer '+CREDS.issue.key, 'Content-Type':'application/json', Prefer:'return=representation' },
+        body: JSON.stringify({ process: newStatus })
+      });
+
+      if(upRes.ok && isRes.ok){
+        badgeEl.textContent = newStatus;
+        badgeEl.style.color = STATUS_COLOR[newStatus] || '';
+        showToast('상태가 "' + newStatus + '"(으)로 양쪽 다 반영됐어요.', false);
+      } else {
+        badgeEl.textContent = origText;
+        showToast('저장 중 오류가 발생했어요. 다시 시도해줘요.', true);
+      }
+    }catch(e){
+      badgeEl.textContent = origText;
+      showToast('오류: ' + e.message, true);
+      console.error('[반품상태동기화]', e);
+    }
+  }
+
+  function openStatusPopup(badgeEl, rowId, key){
+    closePopup();
+    const rect = badgeEl.getBoundingClientRect();
+    const popup = document.createElement('div');
+    popup.id = 'status-popup';
+    popup.style.cssText = 'position:fixed;top:' + (rect.bottom + 4) + 'px;left:' + rect.left +
+      'px;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:6px;z-index:9999;display:flex;flex-direction:column;gap:2px;';
+    STATUS_OPTS.forEach(opt=>{
+      const b = document.createElement('button');
+      b.textContent = opt;
+      b.style.cssText = 'text-align:left;padding:5px 10px;border:none;background:none;cursor:pointer;border-radius:5px;font-size:13px;color:' + (STATUS_COLOR[opt] || '#333');
+      b.onmouseenter = ()=>{ b.style.background = '#f3f4f6'; };
+      b.onmouseleave = ()=>{ b.style.background = 'none'; };
+      b.onclick = (e)=>{ e.stopPropagation(); applyStatusChange(rowId, key, opt, badgeEl); };
+      popup.appendChild(b);
+    });
+    document.body.appendChild(popup);
+    setTimeout(()=>{
+      document.addEventListener('click', function h(ev){
+        if(!popup.contains(ev.target)){ closePopup(); document.removeEventListener('click', h); }
+      });
+    }, 0);
+  }
+
+  function attachStatusEditors(){
+    const tables = Array.from(document.querySelectorAll('table')).filter(t=>{
+      const hdr = Array.from(t.rows[0]?.cells || []).map(c => c.textContent.trim());
+      const r = t.getBoundingClientRect();
+      return hdr.includes('처리내용') && hdr.includes('반품일') && r.width > 0;
+    });
+    tables.forEach(table=>{
+      for(let i=1; i<table.rows.length; i++){
+        const row = table.rows[i];
+        const actionCell = row.cells[13];
+        if(!actionCell) continue;
+        const editEl = actionCell.querySelector('[onclick*="editHistoryRow"]');
+        if(!editEl) continue;
+        const raw = editEl.getAttribute('onclick');
+        const argsMatch = raw.match(/editHistoryRow\((.*)\)/);
+        if(!argsMatch) continue;
+        const parts = argsMatch[1].split(',').map(s => s.trim().replace(/^'|'$/g, ''));
+        const rowId = parts[1];
+        if(!rowId) continue;
+        const badgeEl = row.cells[8];
+        if(badgeEl.dataset.statusEditorAttached) continue;
+        badgeEl.dataset.statusEditorAttached = '1';
+        badgeEl.style.cursor = 'pointer';
+        badgeEl.title = '클릭해서 상태 변경';
+        badgeEl.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          const key = {
+            date: row.cells[0].textContent.trim(),
+            rep: row.cells[1].textContent.trim(),
+            code: row.cells[2].textContent.trim(),
+            customer: row.cells[6].textContent.trim()
+          };
+          openStatusPopup(badgeEl, rowId, key);
+        });
+      }
+    });
+  }
+
+  window.addEventListener('load', async ()=>{
+    await resolveCreds();
+    setInterval(attachStatusEditors, 1000);
+  });
+})();
+</script>
