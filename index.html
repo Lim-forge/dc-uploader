@@ -601,25 +601,25 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
 
 <!-- 로그인 게이트 -->
 <div id="loginOverlay" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 50% 32%, rgba(74,127,193,.14), transparent 60%), #c8d9e8;">
-  <div style="width:360px;max-width:90%;background:rgba(255,255,255,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-    border:1px solid rgba(255,255,255,0.8);border-radius:18px;padding:40px 32px 32px;box-shadow:0 20px 60px rgba(30,60,100,.18);position:relative;">
+  background:radial-gradient(circle at 50% 30%, rgba(201,162,42,.10), transparent 60%), #0B0B0B;">
+  <div style="width:360px;max-width:90%;background:#0B0B0B;border:1px solid rgba(201,162,42,.25);border-radius:18px;
+    padding:40px 32px 32px;box-shadow:0 20px 70px rgba(0,0,0,.55);position:relative;">
     <div style="text-align:center;">
-      <div style="font-size:26px;font-weight:900;letter-spacing:-0.02em;
-        background:linear-gradient(90deg,#0f2444,#2f5da0,#6fa8e8,#2f5da0,#0f2444,#1c3f78,#0f2444);
+      <div style="font-size:13px;font-weight:800;letter-spacing:.18em;color:#c9a22a;">DREAMCELL</div>
+      <div style="font-size:34px;font-weight:900;letter-spacing:-0.02em;margin-top:2px;
+        background:linear-gradient(90deg,#8a6d1f,#e8c96a,#fff3c4,#e8c96a,#8a6d1f);
         background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-        animation:gradient-flow 4s ease infinite;">DreamCell 업로더</div>
+        animation:gradient-flow 4s ease infinite;">업로더</div>
     </div>
     <div style="height:2px;margin:20px 0 26px;background:linear-gradient(90deg,
-      transparent 0%,transparent 15%,
-      rgba(74,127,193,0.35) 32%,rgba(160,210,255,0.9) 46%,
-      rgba(230,245,255,1) 50%,rgba(160,210,255,0.9) 54%,
-      rgba(74,127,193,0.35) 68%,transparent 85%,transparent 100%);
-      background-size:300% 100%;animation:shimmer-line 6s linear infinite;"></div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:12px;text-align:center;letter-spacing:.02em;">이름과 비밀번호를 입력해주세요</div>
+      transparent 0%,transparent 20%,
+      rgba(201,162,42,0.4) 35%,rgba(245,200,66,0.9) 48%,
+      rgba(255,232,138,1) 50%,rgba(245,200,66,0.9) 52%,
+      rgba(201,162,42,0.4) 65%,transparent 80%,transparent 100%);
+      background-size:300% 100%;animation:shimmer-line 8s linear infinite;"></div>
+    <div style="font-size:13px;color:#8b8fb0;margin-bottom:12px;text-align:center;letter-spacing:.02em;">이름과 비밀번호를 입력해주세요</div>
     <select id="loginNameSelect" style="width:100%;box-sizing:border-box;padding:13px 16px;margin-bottom:10px;
-      border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,0.85);color:var(--text);font-size:14px;
-      outline:none;">
+      border-radius:10px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;outline:none;">
       <option value="" disabled selected>이름 선택</option>
       <option value="서재란">서재란</option>
       <option value="김유진">김유진</option>
@@ -629,12 +629,47 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
       <option value="이나연">이나연</option>
     </select>
     <input type="password" id="loginPwInput" placeholder="Password" style="width:100%;box-sizing:border-box;padding:13px 16px;
-      border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,0.85);color:var(--text);font-size:14px;
+      border-radius:10px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;
       outline:none;letter-spacing:.05em;">
-    <div id="loginError" style="color:var(--danger);font-size:12px;margin-top:8px;display:none;text-align:center;">이름 또는 비밀번호가 올바르지 않습니다</div>
+    <div id="loginError" style="color:#ff6b6b;font-size:12px;margin-top:8px;display:none;text-align:center;">이름 또는 비밀번호가 올바르지 않습니다</div>
     <button id="loginSubmitBtn" style="width:100%;margin-top:16px;padding:13px 0;border:none;border-radius:10px;cursor:pointer;
-      font-size:14px;font-weight:700;letter-spacing:.02em;color:#fff;
-      background:linear-gradient(90deg,#4a7fc1,#6a9fd4);box-shadow:0 6px 18px rgba(74,127,193,.35);">입장하기</button>
+      font-size:14px;font-weight:700;letter-spacing:.02em;color:#0B0B0B;
+      background:linear-gradient(90deg,#c9a22a,#f5c842);box-shadow:0 6px 18px rgba(201,162,42,.35);">입장하기</button>
+  </div>
+</div>
+
+<!-- 비밀번호 관리 모달 -->
+<div id="pwModal" style="display:none;position:fixed;inset:0;z-index:99998;align-items:center;justify-content:center;background:rgba(0,0,0,.55);">
+  <div style="width:380px;max-width:92%;background:#0B0B0B;border:1px solid rgba(201,162,42,.25);border-radius:16px;
+    padding:28px 26px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#fff;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:800;color:#e8c96a;">비밀번호 관리</div>
+      <span onclick="closePwModal()" style="cursor:pointer;color:#8b8fb0;font-size:18px;">✕</span>
+    </div>
+    <div id="pwModalUserSelectWrap" style="display:none;margin-bottom:14px;">
+      <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">대상 사용자 (마스터 전용)</label>
+      <select id="pwModalUserSelect" onchange="loadPwModalTarget(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px;
+        border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;"></select>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">현재 비밀번호</label>
+      <div style="display:flex;gap:8px;">
+        <input id="pwModalCurrent" type="password" readonly style="flex:1;min-width:0;padding:10px 12px;border-radius:8px;
+          border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;letter-spacing:.05em;">
+        <button onclick="togglePwVisible()" style="padding:0 12px;border-radius:8px;border:1px solid rgba(201,162,42,.3);
+          background:#161616;color:#e8c96a;cursor:pointer;">👁</button>
+      </div>
+    </div>
+    <div style="margin-bottom:6px;">
+      <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">새 비밀번호</label>
+      <input id="pwModalNew" type="password" placeholder="새 비밀번호 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;
+        border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;">
+    </div>
+    <div id="pwModalMsg" style="font-size:12px;min-height:16px;margin:8px 0;text-align:center;"></div>
+    <button id="pwModalChangeBtn" onclick="submitPwChange()" style="width:100%;padding:11px 0;border:none;border-radius:8px;
+      cursor:pointer;font-size:14px;font-weight:700;color:#0B0B0B;background:linear-gradient(90deg,#c9a22a,#f5c842);margin-bottom:8px;">비밀번호 변경</button>
+    <button id="pwModalResetBtn" onclick="submitPwReset()" style="width:100%;padding:11px 0;border:1px solid rgba(255,107,107,.4);
+      border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#ff8f8f;background:transparent;">초기 비밀번호(dr2068619187)로 초기화</button>
   </div>
 </div>
 
@@ -642,9 +677,13 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
 <div class="hero">
   <div class="hero-card">
     <h1 onclick="goBack()" style="cursor:pointer;" title="메인 화면으로">DreamCell 업로더</h1>
-    <p class="hero-credit"><span id="loginUserBadge" style="display:none;margin-right:14px;color:var(--text-sub);font-weight:600;">👤 <span id="loginUserName"></span> <a href="#" onclick="doLogout();return false;" style="margin-left:8px;color:var(--accent);text-decoration:underline;font-weight:400;">로그아웃</a></span><img class="hero-avatar" src="./assets/img/image_01.jpg" alt="LYJ"><span>개발</span>Lim Young Jae</p>
+    <p class="hero-credit"><span id="loginUserBadge" style="display:none;margin-right:14px;font-weight:600;align-items:center;gap:4px;">
+      <span style="color:#8b8fb0;">👤</span><span id="loginUserName" onclick="openPwModal()" title="클릭하면 비밀번호 관리"
+      style="cursor:pointer;color:#9a7b1f;text-decoration:underline dotted;"></span><a href="#" onclick="doLogout();return false;"
+      style="margin-left:8px;color:#9a7b1f;text-decoration:underline;font-weight:400;">로그아웃</a></span><img class="hero-avatar" src="./assets/img/image_01.jpg" alt="LYJ"><span>개발</span>Lim Young Jae</p>
   </div>
 </div>
+
 
 <!-- ══ 허브 ══ -->
 <div class="hub-section">
@@ -1268,6 +1307,116 @@ function doLogout(){
   localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem(AUTH_USER_KEY);
   location.reload();
+}
+
+// ── 비밀번호 관리 (마스터: 임영재는 전원 조회/변경 가능) ──
+async function upsertConfig(key, value){
+  const patchResp = await fetch(`${UPLOADER_URL}/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`,'Prefer':'return=representation'},
+    body: JSON.stringify({value})
+  });
+  const patched = await patchResp.json().catch(()=>[]);
+  if(!patched || patched.length === 0){
+    await fetch(`${UPLOADER_URL}/rest/v1/app_config`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`,'Prefer':'return=representation'},
+      body: JSON.stringify({key, value})
+    });
+  }
+}
+
+async function getStoredPasswordPlain(name){
+  try{
+    const resp = await fetch(`${UPLOADER_URL}/rest/v1/app_config?key=eq.login_password_plain_${encodeURIComponent(name)}&select=value`,
+      {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+    const data = await resp.json();
+    if(!data || !data[0] || !data[0].value) return 'dr2068619187';
+    return data[0].value;
+  }catch(e){ return 'dr2068619187'; }
+}
+
+function openPwModal(){
+  const loggedInUser = localStorage.getItem(AUTH_USER_KEY);
+  if(!loggedInUser) return;
+  const isMaster = loggedInUser === '임영재';
+  const modal = document.getElementById('pwModal');
+  const selectWrap = document.getElementById('pwModalUserSelectWrap');
+  const select = document.getElementById('pwModalUserSelect');
+  if(isMaster){
+    selectWrap.style.display = 'block';
+    select.innerHTML = LOGIN_USERS.map(u=>`<option value="${u}">${u}</option>`).join('');
+    select.value = loggedInUser;
+  } else {
+    selectWrap.style.display = 'none';
+  }
+  modal.style.display = 'flex';
+  document.getElementById('pwModalMsg').textContent = '';
+  loadPwModalTarget(isMaster ? select.value : loggedInUser);
+}
+
+function closePwModal(){
+  document.getElementById('pwModal').style.display = 'none';
+}
+
+async function loadPwModalTarget(name){
+  const cur = document.getElementById('pwModalCurrent');
+  cur.type = 'password';
+  cur.dataset.visible = '0';
+  cur.value = '불러오는 중...';
+  document.getElementById('pwModalNew').value = '';
+  document.getElementById('pwModalMsg').textContent = '';
+  const plain = await getStoredPasswordPlain(name);
+  cur.value = plain;
+}
+
+function togglePwVisible(){
+  const cur = document.getElementById('pwModalCurrent');
+  const visible = cur.dataset.visible === '1';
+  cur.type = visible ? 'password' : 'text';
+  cur.dataset.visible = visible ? '0' : '1';
+}
+
+function currentPwModalTarget(){
+  const loggedInUser = localStorage.getItem(AUTH_USER_KEY);
+  const isMaster = loggedInUser === '임영재';
+  return isMaster ? document.getElementById('pwModalUserSelect').value : loggedInUser;
+}
+
+async function submitPwChange(){
+  const targetName = currentPwModalTarget();
+  const newPw = document.getElementById('pwModalNew').value.trim();
+  const msgEl = document.getElementById('pwModalMsg');
+  if(!newPw || newPw.length < 4){
+    msgEl.style.color = '#ff6b6b'; msgEl.textContent = '4자 이상 입력해주세요'; return;
+  }
+  const btn = document.getElementById('pwModalChangeBtn');
+  btn.disabled = true; btn.textContent = '변경 중...';
+  try{
+    const hash = await sha256Hex(newPw);
+    await upsertConfig(`login_password_hash_${targetName}`, hash);
+    await upsertConfig(`login_password_plain_${targetName}`, newPw);
+    msgEl.style.color = '#7CE0A0'; msgEl.textContent = `${targetName}님의 비밀번호가 변경되었습니다`;
+    await loadPwModalTarget(targetName);
+  } finally {
+    btn.disabled = false; btn.textContent = '비밀번호 변경';
+  }
+}
+
+async function submitPwReset(){
+  const targetName = currentPwModalTarget();
+  if(!confirm(`${targetName}님의 비밀번호가 dr2068619187로 초기화됩니다. 진행할까요?`)) return;
+  const btn = document.getElementById('pwModalResetBtn');
+  btn.disabled = true;
+  try{
+    await upsertConfig(`login_password_hash_${targetName}`, AUTH_FALLBACK_HASH);
+    await upsertConfig(`login_password_plain_${targetName}`, 'dr2068619187');
+    const msgEl = document.getElementById('pwModalMsg');
+    msgEl.style.color = '#7CE0A0'; msgEl.textContent = `${targetName}님의 비밀번호가 dr2068619187로 초기화되었습니다`;
+    await loadPwModalTarget(targetName);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function attemptLogin(){
