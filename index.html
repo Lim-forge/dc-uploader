@@ -599,6 +599,34 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
 </head>
 <body>
 
+<!-- 로그인 게이트 -->
+<div id="loginOverlay" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 32%, rgba(74,127,193,.14), transparent 60%), #c8d9e8;">
+  <div style="width:360px;max-width:90%;background:rgba(255,255,255,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,0.8);border-radius:18px;padding:40px 32px 32px;box-shadow:0 20px 60px rgba(30,60,100,.18);position:relative;">
+    <div style="text-align:center;">
+      <div style="font-size:26px;font-weight:900;letter-spacing:-0.02em;
+        background:linear-gradient(90deg,#0f2444,#2f5da0,#6fa8e8,#2f5da0,#0f2444,#1c3f78,#0f2444);
+        background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+        animation:gradient-flow 4s ease infinite;">DreamCell 업로더</div>
+    </div>
+    <div style="height:2px;margin:20px 0 26px;background:linear-gradient(90deg,
+      transparent 0%,transparent 15%,
+      rgba(74,127,193,0.35) 32%,rgba(160,210,255,0.9) 46%,
+      rgba(230,245,255,1) 50%,rgba(160,210,255,0.9) 54%,
+      rgba(74,127,193,0.35) 68%,transparent 85%,transparent 100%);
+      background-size:300% 100%;animation:shimmer-line 6s linear infinite;"></div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:12px;text-align:center;letter-spacing:.02em;">비밀번호를 입력해주세요</div>
+    <input type="password" id="loginPwInput" placeholder="Password" style="width:100%;box-sizing:border-box;padding:13px 16px;
+      border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,0.85);color:var(--text);font-size:14px;
+      outline:none;letter-spacing:.05em;">
+    <div id="loginError" style="color:var(--danger);font-size:12px;margin-top:8px;display:none;text-align:center;">비밀번호가 올바르지 않습니다</div>
+    <button id="loginSubmitBtn" style="width:100%;margin-top:16px;padding:13px 0;border:none;border-radius:10px;cursor:pointer;
+      font-size:14px;font-weight:700;letter-spacing:.02em;color:#fff;
+      background:linear-gradient(90deg,#4a7fc1,#6a9fd4);box-shadow:0 6px 18px rgba(74,127,193,.35);">입장하기</button>
+  </div>
+</div>
+
 <!-- 탑바 -->
 <div class="hero">
   <div class="hero-card">
@@ -1179,6 +1207,72 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 const UPLOADER_URL = 'https://uvplpljddxqojiekbxjg.supabase.co';
 const UPLOADER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2cGxwbGpkZHhxb2ppZWtieGpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNDgxODMsImV4cCI6MjEwMTgyNDE4M30.rc_5JRDCrUDE8a1w3LYZbbyUYT1TAyFkQT_mxFKA8Zg';
 const ISSUE_URL    = 'https://fhlowhfqgmjnmzgvmjsi.supabase.co';
+
+/* ══════════════════════════════════════════
+   로그인 게이트 (화면 접근만 막는 클라이언트 사이드 방식)
+   ══════════════════════════════════════════ */
+const LOGIN_GATE_ENABLED = false; // true로 바꾸면 로그인 화면 다시 활성화
+const AUTH_STORAGE_KEY = 'dc_up_auth_until';
+const AUTH_SESSION_DAYS = 7;
+const AUTH_FALLBACK_HASH = 'c6ad3ffe8e7a206263e77ad34e43e55da3f9d03d98ec1de95fdcb2b26ccdd195'; // dr2068619187 (DB 조회 실패 시 폴백)
+
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function getStoredPasswordHash(){
+  try{
+    const resp = await fetch(`${UPLOADER_URL}/rest/v1/app_config?key=eq.login_password_hash&select=value`,
+      {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+    const data = await resp.json();
+    if(!data || !data[0] || !data[0].value) return AUTH_FALLBACK_HASH;
+    return data[0].value;
+  }catch(e){ return AUTH_FALLBACK_HASH; }
+}
+
+function isAuthValid(){
+  const until = parseInt(localStorage.getItem(AUTH_STORAGE_KEY) || '0', 10);
+  return until > Date.now();
+}
+
+function hideLoginOverlay(){
+  const ov = document.getElementById('loginOverlay');
+  if(ov) ov.style.display = 'none';
+}
+
+async function attemptLogin(){
+  const input = document.getElementById('loginPwInput');
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginSubmitBtn');
+  const pw = input.value;
+  if(!pw){ return; }
+  btn.disabled = true; btn.textContent = '확인 중...';
+  try{
+    const inputHash = await sha256Hex(pw);
+    const storedHash = await getStoredPasswordHash();
+    if(inputHash === storedHash){
+      localStorage.setItem(AUTH_STORAGE_KEY, String(Date.now() + AUTH_SESSION_DAYS*24*60*60*1000));
+      hideLoginOverlay();
+    } else {
+      errEl.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  } finally {
+    btn.disabled = false; btn.textContent = '입장하기';
+  }
+}
+
+(function initLoginGate(){
+  if(!LOGIN_GATE_ENABLED){ hideLoginOverlay(); return; }
+  if(isAuthValid()){ hideLoginOverlay(); }
+  const btn = document.getElementById('loginSubmitBtn');
+  const input = document.getElementById('loginPwInput');
+  if(btn) btn.addEventListener('click', attemptLogin);
+  if(input) input.addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
+  if(!isAuthValid() && input) setTimeout(()=>input.focus(), 100);
+})();
 const ISSUE_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps';
 
 // ── 상태 ─────────────────────────────────────────────
