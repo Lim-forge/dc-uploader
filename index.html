@@ -2367,20 +2367,57 @@ async function syncProcessToIssueMonitor(key, newProcess){
 
 // 히스토리 행 삭제
 async function deleteHistoryRow(tab, id, btn) {
-  if(!confirm('이 항목을 삭제할까요?')) return;
+  if(!confirm('이 항목을 삭제할까요?\n\n삭제하면 되돌릴 수 없으며,\n이슈모니터에서도 함께 사라집니다.')) return;
   const isLow = tab === 'low';
   const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
+  const selectCols = isLow
+    ? 'ship_date,catalog_no,customer_name'
+    : 'return_date,code,customer_name';
 
-  const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
-    method:'DELETE',
-    headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}
-  });
+  try {
+    // 1. 업로더DB에서 row 정보 가져오기 (이슈모니터 삭제용 key 확인)
+    const getRes = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}&select=${selectCols}`, {
+      headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}
+    });
+    const rows = await getRes.json();
 
-  if(resp.ok){
-    setStatus('🗑️ 삭제 완료','','');
+    // 2. 업로더DB 삭제
+    const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
+      method:'DELETE',
+      headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}
+    });
+    if(!resp.ok) throw new Error(await resp.text());
+
+    // 3. 이슈모니터DB도 동일 건 삭제
+    //    우선 source_id(업로더 원본 id)로 정확히 매칭 — 중복 건이 있어도 안전
+    //    source_id가 비어있는 과거 데이터는 날짜+코드+거래처로 폴백 매칭
+    const delByQuery = async (q) => {
+      const r = await fetch(`${ISSUE_URL}/rest/v1/${tbl}?${q}`, {
+        method:'DELETE',
+        headers:{'apikey':ISSUE_KEY,'Authorization':`Bearer ${ISSUE_KEY}`,'Prefer':'return=minimal,count=exact'}
+      });
+      const cr = r.headers.get('content-range'); // 예: "*/2"
+      const count = cr ? parseInt(cr.split('/')[1],10) : null;
+      return count;
+    };
+
+    let deletedCount = await delByQuery(`source_id=eq.${id}`);
+
+    if(!deletedCount && rows && rows.length){
+      const r = rows[0];
+      let fallbackQ;
+      if(isLow){
+        fallbackQ = `source_id=is.null&ship_date=eq.${r.ship_date}&catalog_no=eq.${encodeURIComponent(r.catalog_no ?? '')}&customer_name=eq.${encodeURIComponent(r.customer_name ?? '')}`;
+      } else {
+        fallbackQ = `source_id=is.null&return_date=eq.${r.return_date}&code=eq.${encodeURIComponent(r.code ?? '')}&customer_name=eq.${encodeURIComponent(r.customer_name ?? '')}`;
+      }
+      deletedCount = await delByQuery(fallbackQ);
+    }
+
+    setStatus('🗑️ 삭제 완료 — 이슈모니터에도 반영됐습니다','','');
     if(isLow) loadLowHistory(); else loadRetHistory();
-  } else {
-    alert('❌ 삭제 실패');
+  } catch(e){
+    alert('❌ 삭제 실패: '+e.message);
   }
 }
 
@@ -2401,9 +2438,10 @@ async function bulkUpload(tab) {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>업로드 중...';
 
-  // 이슈모니터에 insert할 payload (is_uploaded, id, created_at 제외)
+  // 이슈모니터에 insert할 payload (id → source_id로 보존, created_at/is_uploaded 제외)
   const payload = rows.map(r => {
     const obj = {...r};
+    obj.source_id = r.id;
     delete obj.id;
     delete obj.created_at;
     delete obj.is_uploaded;
