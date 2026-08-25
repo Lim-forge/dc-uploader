@@ -1287,8 +1287,7 @@ async function sha256Hex(text){
 // 이름별 비밀번호 해시 조회 (app_config에 login_password_hash_<이름> 키로 저장, 없으면 공통 초기 비밀번호 사용)
 async function getStoredPasswordHash(name){
   try{
-    const resp = await fetch(`${UPLOADER_URL}/rest/v1/app_config?key=eq.login_password_hash_${encodeURIComponent(name)}&select=value`,
-      {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/app_config?key=eq.login_password_hash_${encodeURIComponent(name)}&select=value`);
     const data = await resp.json();
     if(!data || !data[0] || !data[0].value) return AUTH_FALLBACK_HASH;
     return data[0].value;
@@ -1322,25 +1321,25 @@ function doLogout(){
 
 // ── 비밀번호 관리 (마스터: 임영재는 전원 조회/변경 가능) ──
 async function upsertConfig(key, value){
-  const patchResp = await fetch(`${UPLOADER_URL}/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,{
-    method:'PATCH',
-    headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`,'Prefer':'return=representation'},
-    body: JSON.stringify({value})
-  });
+  const patchResp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,
+    'PATCH', {value}, 'return=representation');
+  if(!patchResp.ok){
+    const errText = await patchResp.text().catch(()=>'');
+    throw new Error(`PATCH 실패 (${patchResp.status}): ${errText}`);
+  }
   const patched = await patchResp.json().catch(()=>[]);
   if(!patched || patched.length === 0){
-    await fetch(`${UPLOADER_URL}/rest/v1/app_config`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`,'Prefer':'return=representation'},
-      body: JSON.stringify({key, value})
-    });
+    const postResp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/app_config', 'POST', {key, value}, 'return=representation');
+    if(!postResp.ok){
+      const errText = await postResp.text().catch(()=>'');
+      throw new Error(`INSERT 실패 (${postResp.status}): ${errText}`);
+    }
   }
 }
 
 async function getStoredPasswordPlain(name){
   try{
-    const resp = await fetch(`${UPLOADER_URL}/rest/v1/app_config?key=eq.login_password_plain_${encodeURIComponent(name)}&select=value`,
-      {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/app_config?key=eq.login_password_plain_${encodeURIComponent(name)}&select=value`);
     const data = await resp.json();
     if(!data || !data[0] || !data[0].value) return 'dr2068619187';
     return data[0].value;
@@ -1349,8 +1348,7 @@ async function getStoredPasswordPlain(name){
 
 async function getGateEnabled(){
   try{
-    const resp = await fetch(`${UPLOADER_URL}/rest/v1/app_config?key=eq.login_gate_enabled&select=value`,
-      {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/app_config?key=eq.login_gate_enabled&select=value');
     const data = await resp.json();
     if(!data || !data[0] || data[0].value === undefined || data[0].value === null) return LOGIN_GATE_ENABLED;
     return data[0].value === 'true';
@@ -1374,9 +1372,25 @@ async function onGateToggleChange(){
   const checked = document.getElementById('gateToggleInput').checked;
   const msgEl = document.getElementById('gateToggleMsg');
   msgEl.textContent = '적용 중...';
-  await setGateEnabled(checked);
-  renderGateToggle(checked);
-  msgEl.textContent = checked ? '로그인 화면이 켜졌습니다 (다른 사람 화면은 새로고침 시 적용)' : '로그인 화면이 꺼졌습니다 (다른 사람 화면은 새로고침 시 적용)';
+  msgEl.style.color = '#8b8fb0';
+  try{
+    await setGateEnabled(checked);
+    // 실제로 DB에 반영됐는지 다시 읽어서 확인 (쓰기는 성공해도 값이 다르면 뭔가 잘못된 것)
+    const confirmed = await getGateEnabled();
+    if(confirmed !== checked){
+      renderGateToggle(confirmed);
+      msgEl.style.color = '#ff6b6b';
+      msgEl.textContent = '저장은 됐는데 DB 값이 다르게 읽혀요. app_config 테이블 권한(RLS)을 확인해주세요.';
+      return;
+    }
+    renderGateToggle(checked);
+    msgEl.style.color = '#8b8fb0';
+    msgEl.textContent = checked ? '로그인 화면이 켜졌습니다 (다른 사람 화면은 새로고침 시 적용)' : '로그인 화면이 꺼졌습니다 (다른 사람 화면은 새로고침 시 적용)';
+  }catch(e){
+    renderGateToggle(!checked);
+    msgEl.style.color = '#ff6b6b';
+    msgEl.textContent = '저장 실패: ' + e.message;
+  }
 }
 
 function openPwModal(){
@@ -1597,29 +1611,6 @@ async function extractPdfText(file) {
   return full;
 }
 
-// x좌표 기반 특정 컬럼 텍스트 추출 (반품 품명용)
-async function extractColText(file, xMin, xMax, yStart, yEnd) {
-  const ab=await file.arrayBuffer();
-  const pdf=await pdfjsLib.getDocument({data:ab}).promise;
-  const items=[];
-  for(let i=1;i<=pdf.numPages;i++){
-    const page=await pdf.getPage(i);
-    const content=await page.getTextContent();
-    const vp=page.getViewport({scale:1});
-    const h=vp.height;
-    content.items.forEach(item=>{
-      const x=item.transform[4];
-      const y=h-item.transform[5]; // PDF y는 아래서 위 방향이라 반전
-      if(x>=xMin&&x<=xMax&&y>=yStart&&y<=yEnd&&item.str.trim()){
-        items.push({y,x,str:item.str.trim()});
-      }
-    });
-  }
-  // y좌표 오름차순, x좌표 오름차순 정렬
-  items.sort((a,b)=>a.y-b.y||a.x-b.x);
-  return items.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
-}
-
 // ── 공통 유틸 ─────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return n!=null?Number(n).toLocaleString('ko-KR'):'-';}
@@ -1834,21 +1825,6 @@ async function saveLow(){
   finally{btn.disabled=false;btn.innerHTML='💾 저장';}
 }
 
-async function uploadLow(){
-  if(!lowRows.length) return;
-  const btn=document.getElementById('low-upload-btn');
-  const res=document.getElementById('low-result');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>업로드 중...';
-  try{
-    const payload=lowRows.map(r=>({ship_date:r.ship_date,customer_name:r.customer_name,rep:r.rep,catalog_no:r.catalog_no,
-      item_name:r.item_name,brand:r.brand,cost_price:r.cost_price,sale_price:r.sale_price,margin_rate:r.margin_rate,reason:r.reason,doc_no:r.doc_no}));
-    const resp=await sbFetch(ISSUE_URL,ISSUE_KEY,'/rest/v1/low_margin_shipments','POST',payload);
-    if(resp.ok||resp.status===201){res.innerHTML='✅ 이슈모니터 업로드 완료!';res.className='action-result success';}
-    else{const e=await resp.json().catch(()=>({}));if(e.code==='23505'){res.textContent='⚠️ 중복 포함 — 신규건만 업로드됨';res.className='action-result warn';}else throw new Error(e.message||`HTTP ${resp.status}`);}
-  }catch(e){res.textContent='❌ '+e.message;res.className='action-result error';}
-  finally{btn.disabled=false;btn.innerHTML='📤 이슈모니터 업로드';}
-}
-
 function clearLow(){
   if(!confirm('초기화할까요?')) return;
   lowRows=[];lowQueue=[];
@@ -1863,8 +1839,7 @@ async function loadLowHistory(){
   document.getElementById('low-stats').innerHTML='';
   let qs=buildQueryString('low');
   try{
-    const resp=await fetch(`${UPLOADER_URL}/rest/v1/low_margin_shipments?${qs}&order=ship_date.asc,id.asc&limit=500`,
-      {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+    const resp=await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/low_margin_shipments?${qs}&order=ship_date.asc,id.asc&limit=500`);
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
     renderLowStats(data);
@@ -2118,22 +2093,6 @@ async function saveRet(){
   finally{btn.disabled=false;btn.innerHTML='💾 저장';}
 }
 
-async function uploadRet(){
-  if(!retRows.length) return;
-  const btn=document.getElementById('ret-upload-btn');
-  const res=document.getElementById('ret-result');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>업로드 중...';
-  try{
-    const payload=retRows.map(r=>({return_date:r.return_date,rep:r.rep,code:r.code,item_name:r.item_name,
-      qty:r.qty,supplier:r.supplier,customer_name:r.customer_name,reason:r.reason,process:r.process,
-      unit_price:r.unit_price,total:r.total,doc_no:r.doc_no}));
-    const resp=await sbFetch(ISSUE_URL,ISSUE_KEY,'/rest/v1/return_shipments','POST',payload);
-    if(resp.ok||resp.status===201){res.innerHTML='✅ 이슈모니터 업로드 완료!';res.className='action-result success';}
-    else{const e=await resp.json().catch(()=>({}));if(e.code==='23505'){res.textContent='⚠️ 중복 포함 — 신규건만 업로드됨';res.className='action-result warn';}else throw new Error(e.message||`HTTP ${resp.status}`);}
-  }catch(e){res.textContent='❌ '+e.message;res.className='action-result error';}
-  finally{btn.disabled=false;btn.innerHTML='📤 이슈모니터 업로드';}
-}
-
 function clearRet(){
   if(!confirm('초기화할까요?')) return;
   retRows=[];retQueue=[];
@@ -2148,8 +2107,7 @@ async function loadRetHistory(){
   document.getElementById('ret-stats').innerHTML='';
   let qs=buildQueryString('ret');
   try{
-    const resp=await fetch(`${UPLOADER_URL}/rest/v1/return_shipments?${qs}&order=return_date.asc,id.asc&limit=500`,
-      {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+    const resp=await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?${qs}&order=return_date.asc,id.asc&limit=500`);
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
     renderRetStats(data);
@@ -2493,47 +2451,6 @@ document.addEventListener('DOMContentLoaded', () => {
 //  히스토리 액션 (업로드/수정/삭제)
 // ══════════════════════════════════════════
 
-// 히스토리에서 이슈모니터 업로드
-async function uploadHistoryRow(tab, id) {
-  const isLow = tab === 'low';
-  const tbl   = isLow ? 'low_margin_shipments' : 'return_shipments';
-
-  // 업로더 DB에서 해당 행 가져오기
-  const getResp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}&select=*`,
-    {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
-  const rows = await getResp.json();
-  if(!rows.length){ alert('데이터를 찾을 수 없습니다.'); return; }
-
-  const row = {...rows[0]};
-  delete row.id; delete row.created_at; delete row.is_uploaded;
-
-  // 이슈모니터 DB에 insert
-  const uploadResp = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/${tbl}`, 'POST', [row]);
-  if(uploadResp.ok || uploadResp.status === 201) {
-    // 업로더 DB is_uploaded = true 업데이트
-    await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
-      method:'PATCH',
-      headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
-      body:JSON.stringify({is_uploaded:true})
-    });
-    setStatus('📤 이슈모니터 업로드 완료!','','success');
-    // 히스토리 새로고침
-    if(isLow) loadLowHistory(); else loadRetHistory();
-  } else {
-    const e = await uploadResp.json().catch(()=>({}));
-    if(e.code==='23505'){
-      // 이미 업로드됨 → is_uploaded만 true로
-      await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
-        method:'PATCH',
-        headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
-        body:JSON.stringify({is_uploaded:true})
-      });
-      if(isLow) loadLowHistory(); else loadRetHistory();
-    } else {
-      alert('❌ 업로드 실패: ' + (e.message||'오류'));
-    }
-  }
-}
 
 // 히스토리 행 수정 - 팝업 모달 방식 (좁은 인라인 칸 대신 크게 보여줌)
 // 탭별 편집가능 컬럼 매핑 (td 인덱스 → {실제DB필드명, 입력타입, 라벨}) — 'reason' 타입은 원본 읽기전용 미리보기 + textarea로 특별 처리
@@ -2644,11 +2561,7 @@ async function saveHistEditModal(){
   btn.disabled = true; btn.textContent = '저장 중...';
 
   try{
-    const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
-      method:'PATCH',
-      headers:{'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
-      body:JSON.stringify(update)
-    });
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/${tbl}?id=eq.${id}`, 'PATCH', update);
     if(resp.ok){
       let syncMsg = '';
       if(tab === 'ret' && newProcess !== null && origKey){
@@ -2674,20 +2587,14 @@ async function saveHistEditModal(){
 async function syncProcessToIssueMonitor(key, newProcess){
   try{
     const qs = `return_date=eq.${key.date}&code=eq.${encodeURIComponent(key.code)}&rep=eq.${encodeURIComponent(key.rep)}&customer_name=eq.${encodeURIComponent(key.customer)}&select=id`;
-    const checkRes = await fetch(`${ISSUE_URL}/rest/v1/return_shipments?${qs}`, {
-      headers:{apikey:ISSUE_KEY, Authorization:`Bearer ${ISSUE_KEY}`}
-    });
+    const checkRes = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?${qs}`);
     const matches = await checkRes.json();
     if(matches.length !== 1){
       return matches.length === 0
         ? ' (이슈모니터에서 같은 건을 못 찾아 동기화는 안 됐어요)'
         : ` (이슈모니터에 동일 조합 ${matches.length}건이 있어 동기화를 건너뛰었어요 — 이슈모니터에서 직접 확인해주세요)`;
     }
-    const patchRes = await fetch(`${ISSUE_URL}/rest/v1/return_shipments?id=eq.${matches[0].id}`, {
-      method:'PATCH',
-      headers:{apikey:ISSUE_KEY, Authorization:`Bearer ${ISSUE_KEY}`, 'Content-Type':'application/json'},
-      body: JSON.stringify({process:newProcess})
-    });
+    const patchRes = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?id=eq.${matches[0].id}`, 'PATCH', {process:newProcess});
     return patchRes.ok ? ' (이슈모니터도 동기화됐어요)' : ' (이슈모니터 동기화는 실패했어요)';
   }catch(e){
     return ' (이슈모니터 동기화 중 오류: '+e.message+')';
@@ -2705,26 +2612,18 @@ async function deleteHistoryRow(tab, id, btn) {
 
   try {
     // 1. 업로더DB에서 row 정보 가져오기 (이슈모니터 삭제용 key 확인)
-    const getRes = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}&select=${selectCols}`, {
-      headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}
-    });
+    const getRes = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/${tbl}?id=eq.${id}&select=${selectCols}`);
     const rows = await getRes.json();
 
     // 2. 업로더DB 삭제
-    const resp = await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=eq.${id}`,{
-      method:'DELETE',
-      headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}
-    });
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/${tbl}?id=eq.${id}`, 'DELETE');
     if(!resp.ok) throw new Error(await resp.text());
 
     // 3. 이슈모니터DB도 동일 건 삭제
     //    우선 source_id(업로더 원본 id)로 정확히 매칭 — 중복 건이 있어도 안전
     //    source_id가 비어있는 과거 데이터는 날짜+코드+거래처로 폴백 매칭
     const delByQuery = async (q) => {
-      const r = await fetch(`${ISSUE_URL}/rest/v1/${tbl}?${q}`, {
-        method:'DELETE',
-        headers:{'apikey':ISSUE_KEY,'Authorization':`Bearer ${ISSUE_KEY}`,'Prefer':'return=minimal,count=exact'}
-      });
+      const r = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/${tbl}?${q}`, 'DELETE', null, 'return=minimal,count=exact');
       const cr = r.headers.get('content-range'); // 예: "*/2"
       const count = cr ? parseInt(cr.split('/')[1],10) : null;
       return count;
@@ -2783,15 +2682,7 @@ async function bulkUpload(tab) {
     if(uploadResp.ok || uploadResp.status === 201 || uploadResp.status === 409) {
       // is_uploaded = true 일괄 업데이트
       const ids = bar._ids;
-      await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=in.(${ids.join(',')})`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': UPLOADER_KEY,
-          'Authorization': `Bearer ${UPLOADER_KEY}`
-        },
-        body: JSON.stringify({is_uploaded: true})
-      });
+      await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/${tbl}?id=in.(${ids.join(',')})`, 'PATCH', {is_uploaded: true});
 
       setStatus(`📤 ${rows.length}건 이슈모니터 업로드 완료!`, '', 'success');
       info.innerHTML = `✅ <strong>${rows.length}건</strong> 업로드 완료!`;
@@ -2808,11 +2699,7 @@ async function bulkUpload(tab) {
       if(e.code === '23505') {
         // 일단 is_uploaded 모두 true로
         const ids = bar._ids;
-        await fetch(`${UPLOADER_URL}/rest/v1/${tbl}?id=in.(${ids.join(',')})`, {
-          method: 'PATCH',
-          headers: {'Content-Type':'application/json','apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`},
-          body: JSON.stringify({is_uploaded:true})
-        });
+        await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/${tbl}?id=in.(${ids.join(',')})`, 'PATCH', {is_uploaded: true});
         info.innerHTML = '⚠️ 일부 중복 포함 — 신규건 업로드됨';
         if(isLow) loadLowHistory(); else loadRetHistory();
       } else {
@@ -3130,12 +3017,7 @@ async function doSaveOrd() {
       po_price:r.po_price||null, margin_rate:r.margin_rate||null,
       reason:null
     }));
-    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,
-        'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=representation'},
-      body:JSON.stringify(payload)
-    });
+    const res = await sbFetch(ORD_SUPA_URL, ORD_SUPA_KEY, '/rest/v1/orders', 'POST', payload, 'return=representation');
     if(!res.ok) throw new Error(await res.text());
     const saved = await res.json();
     window._savedOrdRows = saved;
@@ -3197,62 +3079,6 @@ function fallbackCopy(text){
 }
 function copyOrdGroupLink(link,name){
   copyTextSmart(link).then(ok=>{ if(ok) showToast(`🔗 ${name} 링크 복사됨`,'success'); });
-}
-async function saveOrd(){showOrdMonthModal();}
-
-function renderOrdLinks(savedRows) {
-  const base = window.location.origin + window.location.pathname;
-  // 저장된 rows를 파싱된 lowRows와 순서 매칭
-  const tbody = document.getElementById('ord-tbody');
-  if(!tbody) return;
-  const trs = tbody.querySelectorAll('tr:not([data-group])');
-  let dataIdx = 0;
-  tbody.querySelectorAll('tr').forEach(tr => {
-    if(tr.dataset.group) return;
-    const row = savedRows[dataIdx];
-    if(!row) return;
-    // 링크 셀이 없으면 추가
-    if(!tr.querySelector('.ord-link-cell')) {
-      const td = document.createElement('td');
-      td.className = 'ord-link-cell';
-      const link = `${base}?reason=${row.id}`;
-      td.innerHTML = `<button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;"
-        onclick="copyOrdLink('${link}','${(row.orderer||'')}','${(row.customer_name||'').replace(/'/g,'')}')">🔗 복사</button>`;
-      tr.appendChild(td);
-    }
-    dataIdx++;
-  });
-
-  // 전체 링크 복사 버튼 표시
-  const allLinks = savedRows.map(r => {
-    const link = `${base}?reason=${r.id}`;
-    return `[${r.orderer||''}] ${r.customer_name||''} / ${r.item_name||''}\n${link}`;
-  }).join('\n\n');
-
-  const copyAllBtn = document.getElementById('ord-copy-all-btn');
-  if(copyAllBtn) {
-    copyAllBtn.style.display = '';
-    copyAllBtn._links = allLinks;
-  }
-}
-
-function copyOrdLink(link, orderer, customer) {
-  copyTextSmart(link).then(ok => {
-    if(ok) showToast(`🔗 ${orderer} / ${customer} 링크 복사됨`,'success');
-  });
-}
-
-function copyAllOrdLinks() {
-  const btn = document.getElementById('ord-copy-all-btn');
-  if(!btn || !btn._links) return;
-  copyTextSmart(btn._links).then(ok => {
-    if(ok) showToast(`📋 전체 링크 복사됨 — 메일에 붙여넣으세요`,'success');
-  });
-}
-
-// 엑셀 업로드 탭 이슈모니터 버튼 - 저장 유도
-async function uploadOrd() {
-  showToast('먼저 💾 저장 후 히스토리 탭에서 이슈모니터 업로드하세요.', 'warn');
 }
 
 // 히스토리 탭 일괄 업로드 - 월 선택 후 실행 (상태 무관, 화면에 조회된 전체 건 대상 — 재업로드 포함)
@@ -3384,11 +3210,7 @@ async function applyOrdMakerReasons(){
     for(const {maker, reason} of targets){
       const ids = allRows.filter(r=>r.maker===maker).map(r=>r.id);
       if(!ids.length) continue;
-      await fetch(`${ORD_SUPA_URL}/rest/v1/orders?id=in.(${ids.join(',')})`, {
-        method:'PATCH',
-        headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
-        body: JSON.stringify({reason, reason_at: new Date().toISOString()})
-      });
+      await sbFetch(ORD_SUPA_URL, ORD_SUPA_KEY, `/rest/v1/orders?id=in.(${ids.join(',')})`, 'PATCH', {reason, reason_at: new Date().toISOString()}, 'return=minimal');
       totalCount += ids.length;
     }
     showToast(`✅ 제조업체 ${targets.length}개, 총 ${totalCount}건 사유 일괄 저장 완료`,'success');
@@ -3408,7 +3230,7 @@ async function loadOrdHistory() {
   const curYear = new Date().getFullYear();
   const y = (year && year!=='--년도--' && year!=='전체') ? year : '';
 
-  let url = `${ORD_SUPA_URL}/rest/v1/orders?order=order_date.asc,id.asc&limit=500`;
+  let url = `/rest/v1/orders?order=order_date.asc,id.asc&limit=500`;
   if(y && month) {
     const nm = month==='12' ? `${parseInt(y)+1}-01` : `${y}-${String(parseInt(month)+1).padStart(2,'0')}`;
     url += `&created_at=gte.${y}-${month}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`;
@@ -3416,7 +3238,7 @@ async function loadOrdHistory() {
     url += `&created_at=gte.${y}-01-01T00:00:00&created_at=lt.${parseInt(y)+1}-01-01T00:00:00`;
   }
   try {
-    const res = await fetch(url, {headers:{'apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY}});
+    const res = await sbFetch(ORD_SUPA_URL, ORD_SUPA_KEY, url);
     const rows = await res.json();
 
     // ── 제외 규칙 적용 (파싱 필터와 동일) ──
@@ -3558,11 +3380,7 @@ async function saveAllOrdHistoryReasons() {
   try {
     let done = 0;
     for(const {id, reason} of updates) {
-      await fetch(`${ORD_SUPA_URL}/rest/v1/orders?id=eq.${id}`, {
-        method:'PATCH',
-        headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
-        body: JSON.stringify({reason, reason_at: new Date().toISOString()})
-      });
+      await sbFetch(ORD_SUPA_URL, ORD_SUPA_KEY, `/rest/v1/orders?id=eq.${id}`, 'PATCH', {reason, reason_at: new Date().toISOString()}, 'return=minimal');
       done++;
     }
     showToast(`✅ ${done}건 일괄 저장 완료`,'success');
@@ -3597,25 +3415,19 @@ async function deleteOrdRow(id) {
   if(!confirm('⚠️ 이 수주건을 삭제할까요?\n\n삭제하면 되돌릴 수 없으며,\n이슈모니터에서도 함께 사라집니다.')) return;
   try {
     // 1. 업로더DB에서 row 정보 가져오기 (이슈모니터 삭제용 key 확인)
-    const getRes = await fetch(`${UPLOADER_URL}/rest/v1/orders?id=eq.${id}&select=orderer,order_date,item_code`, {
-      headers:{'apikey':UPLOADER_KEY,'Authorization':'Bearer '+UPLOADER_KEY}
-    });
+    const getRes = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/orders?id=eq.${id}&select=orderer,order_date,item_code`);
     const rows = await getRes.json();
 
     // 2. 업로더DB 삭제
-    const res = await fetch(`${UPLOADER_URL}/rest/v1/orders?id=eq.${id}`, {
-      method:'DELETE',
-      headers:{'apikey':UPLOADER_KEY,'Authorization':'Bearer '+UPLOADER_KEY}
-    });
+    const res = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/orders?id=eq.${id}`, 'DELETE');
     if(!res.ok) throw new Error(await res.text());
 
     // 3. 이슈모니터DB도 동일 건 삭제 (orderer+order_date+item_code 매칭)
     if(rows && rows.length) {
       const r = rows[0];
-      await fetch(`${ISSUE_URL}/rest/v1/orders?orderer=eq.${encodeURIComponent(r.orderer)}&order_date=eq.${r.order_date}&item_code=eq.${encodeURIComponent(r.item_code)}`, {
-        method:'DELETE',
-        headers:{'apikey':ISSUE_KEY,'Authorization':'Bearer '+ISSUE_KEY,'Prefer':'return=minimal'}
-      });
+      await sbFetch(ISSUE_URL, ISSUE_KEY,
+        `/rest/v1/orders?orderer=eq.${encodeURIComponent(r.orderer)}&order_date=eq.${r.order_date}&item_code=eq.${encodeURIComponent(r.item_code)}`,
+        'DELETE', null, 'return=minimal');
     }
 
     showToast('🗑️ 삭제 완료 — 이슈모니터에도 반영됐습니다','success');
@@ -3656,19 +3468,15 @@ async function doOrdMonthDelete() {
   btn.disabled = true; btn.textContent = '삭제 중...';
   try {
     // 1. 업로더DB 삭제
-    const res = await fetch(
-      `${UPLOADER_URL}/rest/v1/orders?created_at=gte.${ym}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`, {
-      method:'DELETE',
-      headers:{'apikey':UPLOADER_KEY,'Authorization':'Bearer '+UPLOADER_KEY,'Prefer':'return=minimal'}
-    });
+    const res = await sbFetch(UPLOADER_URL, UPLOADER_KEY,
+      `/rest/v1/orders?created_at=gte.${ym}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`,
+      'DELETE', null, 'return=minimal');
     if(!res.ok) throw new Error(await res.text());
 
     // 2. 이슈모니터DB도 삭제 (order_date 기준)
-    await fetch(
-      `${ISSUE_URL}/rest/v1/orders?order_date=gte.${ym}-01&order_date=lt.${nm}-01`, {
-      method:'DELETE',
-      headers:{'apikey':ISSUE_KEY,'Authorization':'Bearer '+ISSUE_KEY,'Prefer':'return=minimal'}
-    });
+    await sbFetch(ISSUE_URL, ISSUE_KEY,
+      `/rest/v1/orders?order_date=gte.${ym}-01&order_date=lt.${nm}-01`,
+      'DELETE', null, 'return=minimal');
 
     document.getElementById('ord-delete-modal').style.display = 'none';
     showToast(`🗑️ ${ym} 수주건 전체 삭제 완료 — 이슈모니터에도 반영됐습니다`,'success');
@@ -3685,11 +3493,7 @@ async function saveOrdHistoryReason(id) {
   const reason = el.value.trim();
   if(!reason) { showToast('사유를 입력해주세요.','warn'); return; }
   try {
-    const res = await fetch(`${ORD_SUPA_URL}/rest/v1/orders?id=eq.${id}`, {
-      method:'PATCH',
-      headers:{'Content-Type':'application/json','apikey':ORD_SUPA_KEY,'Authorization':'Bearer '+ORD_SUPA_KEY,'Prefer':'return=minimal'},
-      body: JSON.stringify({reason, reason_at: new Date().toISOString()})
-    });
+    const res = await sbFetch(ORD_SUPA_URL, ORD_SUPA_KEY, `/rest/v1/orders?id=eq.${id}`, 'PATCH', {reason, reason_at: new Date().toISOString()}, 'return=minimal');
     if(!res.ok) throw new Error(await res.text());
     el.style.borderColor='#2e9e6e';
     showToast('✅ 사유 저장됨 — 히스토리가 갱신됩니다','success');
@@ -3839,16 +3643,13 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
   const ord = p.get('ord'), ym = p.get('ym');
   if(!ord) return;
   document.body.style.overflow='hidden';
-  const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps';
-  const BASE='https://fhlowhfqgmjnmzgvmjsi.supabase.co';
-  let url=`${BASE}/rest/v1/orders?orderer=eq.${encodeURIComponent(ord)}&select=*&order=order_date.asc&limit=200`;
+  let path=`/rest/v1/orders?orderer=eq.${encodeURIComponent(ord)}&select=*&order=order_date.asc&limit=200`;
   if(ym){
     const [y,m]=ym.split('-');
     const nm=m==='12'?`${parseInt(y)+1}-01`:`${y}-${String(parseInt(m)+1).padStart(2,'0')}`;
-    url+=`&created_at=gte.${ym}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`;
+    path+=`&created_at=gte.${ym}-01T00:00:00&created_at=lt.${nm}-01T00:00:00`;
   }
-  const hdrs={'apikey':KEY,'Authorization':'Bearer '+KEY};
-  fetch(url,{headers:hdrs}).then(r=>r.json()).then(rows=>{
+  sbFetch(ISSUE_URL, ISSUE_KEY, path).then(r=>r.json()).then(rows=>{
     const modal=document.getElementById('ord-group-modal');
     modal.style.display='flex';
     document.getElementById('ord-group-title').textContent=`👤 ${ord}님의 수주건`;
@@ -3866,8 +3667,6 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
         >${r.reason||''}</textarea>
       </td>
     </tr>`).join('');
-    window._ord_group_key=KEY;
-    window._ord_group_base=BASE;
   }).catch(e=>{
     document.getElementById('ord-group-modal').style.display='flex';
     document.getElementById('ord-group-title').textContent='오류: '+e.message;
@@ -3875,9 +3674,6 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
 })();
 
 async function saveOrdGroupReasons(){
-  const KEY=window._ord_group_key;
-  const BASE=window._ord_group_base;
-  if(!KEY){alert('키 정보 없음');return;}
   const tas=document.querySelectorAll('#ord-group-tbody textarea[data-id]');
   const updates=[];
   tas.forEach(ta=>{const r=ta.value.trim();if(r) updates.push({id:ta.dataset.id,reason:r});});
@@ -3886,11 +3682,7 @@ async function saveOrdGroupReasons(){
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
   try{
     await Promise.all(updates.map(({id,reason})=>
-      fetch(`${BASE}/rest/v1/orders?id=eq.${id}`,{
-        method:'PATCH',
-        headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY,'Prefer':'return=minimal'},
-        body:JSON.stringify({reason})
-      })
+      sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/orders?id=eq.${id}`, 'PATCH', {reason}, 'return=minimal')
     ));
     document.getElementById('ord-group-done').style.display='block';
     if(btn){btn.textContent='✔ 저장됨';}
@@ -3927,12 +3719,7 @@ async function saveOrdGroupReasons(){
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
   // Supabase에서 해당 row 조회
-  fetch(`https://fhlowhfqgmjnmzgvmjsi.supabase.co/rest/v1/orders?id=eq.${rid}&select=*`, {
-    headers:{
-      'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps',
-      'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps'
-    }
-  }).then(r=>r.json()).then(rows=>{
+  sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/orders?id=eq.${rid}&select=*`).then(r=>r.json()).then(rows=>{
     if(!rows||!rows.length){ document.getElementById('reason-modal-info').textContent='해당 수주건을 찾을 수 없습니다.'; return; }
     const row = rows[0];
     window._reason_id = rid;
@@ -3956,16 +3743,7 @@ async function submitReason(){
   const btn = document.getElementById('reason-submit-btn');
   btn.disabled=true; btn.textContent='저장 중...';
   try {
-    const res = await fetch(`https://fhlowhfqgmjnmzgvmjsi.supabase.co/rest/v1/orders?id=eq.${rid}`, {
-      method:'PATCH',
-      headers:{
-        'Content-Type':'application/json',
-        'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps',
-        'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps',
-        'Prefer':'return=minimal'
-      },
-      body: JSON.stringify({reason})
-    });
+    const res = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/orders?id=eq.${rid}`, 'PATCH', {reason}, 'return=minimal');
     if(!res.ok) throw new Error(await res.text());
     btn.textContent='✔ 저장됨';
     document.getElementById('reason-done').style.display='block';
