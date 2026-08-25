@@ -646,6 +646,17 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
       <div style="font-size:16px;font-weight:800;color:#e8c96a;">비밀번호 관리</div>
       <span onclick="closePwModal()" style="cursor:pointer;color:#8b8fb0;font-size:18px;">✕</span>
     </div>
+    <div id="gateToggleWrap" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(201,162,42,.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="font-size:12px;color:#8b8fb0;">로그인 화면 사용 (전체 적용)</label>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;">
+          <input type="checkbox" id="gateToggleInput" onchange="onGateToggleChange()" style="opacity:0;width:0;height:0;">
+          <span id="gateToggleSlider" style="position:absolute;cursor:pointer;inset:0;background:#333;border-radius:24px;transition:.2s;"></span>
+          <span id="gateToggleKnob" style="position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;"></span>
+        </label>
+      </div>
+      <div id="gateToggleMsg" style="font-size:11px;color:#8b8fb0;margin-top:6px;"></div>
+    </div>
     <div id="pwModalUserSelectWrap" style="display:none;margin-bottom:14px;">
       <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">대상 사용자 (마스터 전용)</label>
       <select id="pwModalUserSelect" onchange="loadPwModalTarget(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px;
@@ -1336,6 +1347,38 @@ async function getStoredPasswordPlain(name){
   }catch(e){ return 'dr2068619187'; }
 }
 
+async function getGateEnabled(){
+  try{
+    const resp = await fetch(`${UPLOADER_URL}/rest/v1/app_config?key=eq.login_gate_enabled&select=value`,
+      {headers:{'apikey':UPLOADER_KEY,'Authorization':`Bearer ${UPLOADER_KEY}`}});
+    const data = await resp.json();
+    if(!data || !data[0] || data[0].value === undefined || data[0].value === null) return LOGIN_GATE_ENABLED;
+    return data[0].value === 'true';
+  }catch(e){ return LOGIN_GATE_ENABLED; }
+}
+
+async function setGateEnabled(enabled){
+  await upsertConfig('login_gate_enabled', enabled ? 'true' : 'false');
+}
+
+function renderGateToggle(checked){
+  const input = document.getElementById('gateToggleInput');
+  const slider = document.getElementById('gateToggleSlider');
+  const knob = document.getElementById('gateToggleKnob');
+  input.checked = checked;
+  slider.style.background = checked ? 'linear-gradient(90deg,#c9a22a,#f5c842)' : '#333';
+  knob.style.transform = checked ? 'translateX(20px)' : 'translateX(0)';
+}
+
+async function onGateToggleChange(){
+  const checked = document.getElementById('gateToggleInput').checked;
+  const msgEl = document.getElementById('gateToggleMsg');
+  msgEl.textContent = '적용 중...';
+  await setGateEnabled(checked);
+  renderGateToggle(checked);
+  msgEl.textContent = checked ? '로그인 화면이 켜졌습니다 (다른 사람 화면은 새로고침 시 적용)' : '로그인 화면이 꺼졌습니다 (다른 사람 화면은 새로고침 시 적용)';
+}
+
 function openPwModal(){
   const loggedInUser = localStorage.getItem(AUTH_USER_KEY);
   if(!loggedInUser) return;
@@ -1347,8 +1390,11 @@ function openPwModal(){
     selectWrap.style.display = 'block';
     select.innerHTML = LOGIN_USERS.map(u=>`<option value="${u}">${u}</option>`).join('');
     select.value = loggedInUser;
+    document.getElementById('gateToggleWrap').style.display = 'block';
+    getGateEnabled().then(renderGateToggle);
   } else {
     selectWrap.style.display = 'none';
+    document.getElementById('gateToggleWrap').style.display = 'none';
   }
   modal.style.display = 'flex';
   document.getElementById('pwModalMsg').textContent = '';
@@ -1450,8 +1496,9 @@ async function attemptLogin(){
   }
 }
 
-(function initLoginGate(){
-  if(!LOGIN_GATE_ENABLED){ hideLoginOverlay(); return; }
+(async function initLoginGate(){
+  const enabled = await getGateEnabled();
+  if(!enabled){ hideLoginOverlay(); return; }
   if(isAuthValid()){ hideLoginOverlay(); }
   const btn = document.getElementById('loginSubmitBtn');
   const input = document.getElementById('loginPwInput');
