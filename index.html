@@ -712,67 +712,75 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
 
 <!-- 비밀번호 관리 모달 -->
 <div id="pwModal" style="display:none;position:fixed;inset:0;z-index:99998;align-items:center;justify-content:center;background:rgba(0,0,0,.55);">
-  <div style="width:380px;max-width:92%;background:#0B0B0B;border:1px solid rgba(201,162,42,.25);border-radius:16px;
-    padding:28px 26px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#fff;">
+  <div style="width:680px;max-width:94vw;background:#0B0B0B;border:1px solid rgba(201,162,42,.25);border-radius:16px;
+    padding:28px 26px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#fff;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div style="font-size:16px;font-weight:800;color:#e8c96a;">비밀번호 관리</div>
       <span onclick="closePwModal()" style="cursor:pointer;color:#8b8fb0;font-size:18px;">✕</span>
     </div>
-    <div id="gateToggleWrap" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(201,162,42,.15);">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <label style="font-size:12px;color:#8b8fb0;">로그인 화면 사용 (전체 적용)</label>
-        <label style="position:relative;display:inline-block;width:44px;height:24px;">
-          <input type="checkbox" id="gateToggleInput" onchange="onGateToggleChange()" style="opacity:0;width:0;height:0;">
-          <span id="gateToggleSlider" style="position:absolute;cursor:pointer;inset:0;background:#333;border-radius:24px;transition:.2s;"></span>
-          <span id="gateToggleKnob" style="position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;"></span>
-        </label>
-      </div>
-      <div id="gateToggleMsg" style="font-size:11px;color:#8b8fb0;margin-top:6px;"></div>
-    </div>
-    <div id="acctMgmtWrap" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(201,162,42,.15);">
-      <div style="font-size:12px;color:#8b8fb0;margin-bottom:8px;">계정 관리 (마스터 전용)</div>
-      <div id="acctList" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
-      <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px dashed rgba(201,162,42,.2);">
-        <div style="font-size:11px;color:#8b8fb0;">새 계정 추가 (초기 비밀번호는 공통 초기값으로 자동 설정됨)</div>
-        <div style="display:flex;gap:6px;">
-          <input id="acctNewName" placeholder="이름" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
-          <input id="acctNewCompany" placeholder="법인 (예: 드림셀)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+      <!-- 왼쪽: 로그인게이트 + 계정관리 (마스터 전용, 폭을 넓게 써서 계정 목록이 한 줄에 다 보이게) -->
+      <div style="flex:1 1 360px;min-width:300px;">
+        <div id="gateToggleWrap" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(201,162,42,.15);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <label style="font-size:12px;color:#8b8fb0;">로그인 화면 사용 (전체 적용)</label>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;">
+              <input type="checkbox" id="gateToggleInput" onchange="onGateToggleChange()" style="opacity:0;width:0;height:0;">
+              <span id="gateToggleSlider" style="position:absolute;cursor:pointer;inset:0;background:#333;border-radius:24px;transition:.2s;"></span>
+              <span id="gateToggleKnob" style="position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;"></span>
+            </label>
+          </div>
+          <div id="gateToggleMsg" style="font-size:11px;color:#8b8fb0;margin-top:6px;"></div>
         </div>
-        <div style="display:flex;gap:6px;">
-          <input id="acctNewDept" placeholder="부서 (예: 관리부)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
-          <select id="acctNewRole" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
-            <option value="member">일반(member)</option>
-            <option value="master">마스터(master)</option>
-          </select>
+        <div id="acctMgmtWrap" style="display:none;">
+          <div style="font-size:12px;color:#8b8fb0;margin-bottom:8px;">계정 관리 (마스터 전용)</div>
+          <div id="acctList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px dashed rgba(201,162,42,.2);">
+            <div style="font-size:11px;color:#8b8fb0;">새 계정 추가 (초기 비밀번호는 공통 초기값으로 자동 설정됨)</div>
+            <div style="display:flex;gap:6px;">
+              <input id="acctNewName" placeholder="이름" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+              <input id="acctNewCompany" placeholder="법인 (예: 드림셀)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+            </div>
+            <div style="display:flex;gap:6px;">
+              <input id="acctNewDept" placeholder="부서 (예: 관리부)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+              <select id="acctNewRole" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+                <option value="member">일반(member)</option>
+                <option value="master">마스터(master)</option>
+              </select>
+            </div>
+            <button onclick="addStaffAccount()" style="padding:8px 0;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#0B0B0B;background:linear-gradient(90deg,#c9a22a,#f5c842);">+ 계정 추가</button>
+            <div id="acctMsg" style="font-size:11px;min-height:14px;text-align:center;"></div>
+          </div>
         </div>
-        <button onclick="addStaffAccount()" style="padding:8px 0;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#0B0B0B;background:linear-gradient(90deg,#c9a22a,#f5c842);">+ 계정 추가</button>
-        <div id="acctMsg" style="font-size:11px;min-height:14px;text-align:center;"></div>
+      </div>
+      <!-- 오른쪽: 비밀번호 변경/초기화 (일반 계정은 이 영역만 보임) -->
+      <div style="flex:1 1 260px;min-width:240px;">
+        <div id="pwModalUserSelectWrap" style="display:none;margin-bottom:14px;">
+          <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">대상 사용자 (마스터 전용)</label>
+          <select id="pwModalUserSelect" onchange="loadPwModalTarget(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px;
+            border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;"></select>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">현재 비밀번호</label>
+          <div style="display:flex;gap:8px;">
+            <input id="pwModalCurrent" type="password" readonly style="flex:1;min-width:0;padding:10px 12px;border-radius:8px;
+              border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;letter-spacing:.05em;">
+            <button onclick="togglePwVisible()" style="padding:0 12px;border-radius:8px;border:1px solid rgba(201,162,42,.3);
+              background:#161616;color:#e8c96a;cursor:pointer;">👁</button>
+          </div>
+        </div>
+        <div style="margin-bottom:6px;">
+          <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">새 비밀번호</label>
+          <input id="pwModalNew" type="password" placeholder="새 비밀번호 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;
+            border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;">
+        </div>
+        <div id="pwModalMsg" style="font-size:12px;min-height:16px;margin:8px 0;text-align:center;"></div>
+        <button id="pwModalChangeBtn" onclick="submitPwChange()" style="width:100%;padding:11px 0;border:none;border-radius:8px;
+          cursor:pointer;font-size:14px;font-weight:700;color:#0B0B0B;background:linear-gradient(90deg,#c9a22a,#f5c842);margin-bottom:8px;">비밀번호 변경</button>
+        <button id="pwModalResetBtn" onclick="submitPwReset()" style="width:100%;padding:11px 0;border:1px solid rgba(255,107,107,.4);
+          border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#ff8f8f;background:transparent;">초기 비밀번호(dr2068619187)로 초기화</button>
       </div>
     </div>
-    <div id="pwModalUserSelectWrap" style="display:none;margin-bottom:14px;">
-      <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">대상 사용자 (마스터 전용)</label>
-      <select id="pwModalUserSelect" onchange="loadPwModalTarget(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px;
-        border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;"></select>
-    </div>
-    <div style="margin-bottom:14px;">
-      <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">현재 비밀번호</label>
-      <div style="display:flex;gap:8px;">
-        <input id="pwModalCurrent" type="password" readonly style="flex:1;min-width:0;padding:10px 12px;border-radius:8px;
-          border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;letter-spacing:.05em;">
-        <button onclick="togglePwVisible()" style="padding:0 12px;border-radius:8px;border:1px solid rgba(201,162,42,.3);
-          background:#161616;color:#e8c96a;cursor:pointer;">👁</button>
-      </div>
-    </div>
-    <div style="margin-bottom:6px;">
-      <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">새 비밀번호</label>
-      <input id="pwModalNew" type="password" placeholder="새 비밀번호 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;
-        border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;">
-    </div>
-    <div id="pwModalMsg" style="font-size:12px;min-height:16px;margin:8px 0;text-align:center;"></div>
-    <button id="pwModalChangeBtn" onclick="submitPwChange()" style="width:100%;padding:11px 0;border:none;border-radius:8px;
-      cursor:pointer;font-size:14px;font-weight:700;color:#0B0B0B;background:linear-gradient(90deg,#c9a22a,#f5c842);margin-bottom:8px;">비밀번호 변경</button>
-    <button id="pwModalResetBtn" onclick="submitPwReset()" style="width:100%;padding:11px 0;border:1px solid rgba(255,107,107,.4);
-      border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#ff8f8f;background:transparent;">초기 비밀번호(dr2068619187)로 초기화</button>
   </div>
 </div>
 
