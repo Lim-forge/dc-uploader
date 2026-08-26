@@ -595,6 +595,85 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
 .filter-input:focus{border-color:var(--accent);background:rgba(255,255,255,0.9);}
 
 #ord-del-confirm-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ══════════════ 히스토리 표 인쇄(PDF 출력) ══════════════
+   기본 A4 가로, 10%미만 수주건(ord)은 컬럼이 많아 printHistoryPanel()이
+   인쇄 직전에 A3 가로로 @page를 바꿔 끼운다. 여기선 무엇을 숨기고
+   표를 어떻게 종이 폭에 맞출지만 담당. */
+@media print{
+  @page{size:A4 landscape;margin:10mm;}
+  body{background:#fff;}
+  #loginOverlay,#toast-container,.hub-section,.back-btn,.sub-tabs,
+  .filter-bar,.bulk-upload-bar,.print-btn{display:none!important;}
+  .panel-area{padding:0!important;display:block!important;}
+  .table-wrap{overflow:visible!important;box-shadow:none!important;border:none!important;background:#fff!important;}
+  .stats-row,.ord-kpi-row{page-break-inside:avoid;}
+  /* 표 폭을 종이에 맞추고, 셀 안에서 줄바꿈되게 강제 (긴 품명/사유가 우측으로 잘려나가는 것 방지) */
+  table,.ord-h-table{min-width:0!important;width:100%!important;table-layout:fixed!important;}
+  th,td,.ord-h-table th,.ord-h-table td{
+    white-space:normal!important;word-break:keep-all!important;overflow-wrap:break-word!important;
+  }
+  thead th{white-space:nowrap!important;padding:6px 8px!important;}
+  tbody td{padding:5px 8px!important;}
+  /* 날짜 컬럼(출고일/반품일/수주일/저장일)은 줄바꿈되면 보기 나쁘니 한 줄 유지 */
+  td.td-date,
+  #low-history table td:nth-child(11),
+  #return-history table td:nth-child(12),
+  #ord-history table td:nth-child(13),#ord-history table td:nth-child(14){white-space:nowrap!important;}
+  /* 표 맨 끝 "액션"(수정·삭제 버튼) 컬럼은 인쇄물엔 필요 없어 숨김 */
+  #low-history table th:last-child,#low-history table td:last-child,
+  #return-history table th:last-child,#return-history table td:last-child,
+  #ord-history table th:last-child,#ord-history table td:last-child{display:none!important;}
+
+  /* 10% 미만 출고건 (13열 중 마지막 액션 제외 12열: 출고일·거래처·담당자·카달로그번호·품명·브랜드·입고가·출고가·마진율·사유·저장일·업로드) */
+  #low-history table th:nth-child(1),#low-history table td:nth-child(1){width:7%!important;}
+  #low-history table th:nth-child(2),#low-history table td:nth-child(2){width:8%!important;}
+  #low-history table th:nth-child(3),#low-history table td:nth-child(3){width:6%!important;}
+  #low-history table th:nth-child(4),#low-history table td:nth-child(4){width:8%!important;}
+  #low-history table th:nth-child(5),#low-history table td:nth-child(5){width:15%!important;}
+  #low-history table th:nth-child(6),#low-history table td:nth-child(6){width:6%!important;}
+  #low-history table th:nth-child(7),#low-history table td:nth-child(7){width:6%!important;}
+  #low-history table th:nth-child(8),#low-history table td:nth-child(8){width:6%!important;}
+  #low-history table th:nth-child(9),#low-history table td:nth-child(9){width:5%!important;}
+  #low-history table th:nth-child(10),#low-history table td:nth-child(10){width:17%!important;}
+  #low-history table th:nth-child(11),#low-history table td:nth-child(11){width:6%!important;}
+  #low-history table th:nth-child(12),#low-history table td:nth-child(12){width:10%!important;}
+
+  /* 반품처리건 (14열 중 마지막 액션 제외 13열: 반품일·담당자·코드·품명·수량·매입처·수주처·사유·처리내용·단가·합계·저장일·업로드) */
+  #return-history table th:nth-child(1),#return-history table td:nth-child(1){width:7%!important;}
+  #return-history table th:nth-child(2),#return-history table td:nth-child(2){width:6%!important;}
+  #return-history table th:nth-child(3),#return-history table td:nth-child(3){width:7%!important;}
+  #return-history table th:nth-child(4),#return-history table td:nth-child(4){width:13%!important;}
+  #return-history table th:nth-child(5),#return-history table td:nth-child(5){width:4%!important;}
+  #return-history table th:nth-child(6),#return-history table td:nth-child(6){width:8%!important;}
+  #return-history table th:nth-child(7),#return-history table td:nth-child(7){width:8%!important;}
+  #return-history table th:nth-child(8),#return-history table td:nth-child(8){width:13%!important;}
+  #return-history table th:nth-child(9),#return-history table td:nth-child(9){width:7%!important;}
+  #return-history table th:nth-child(10),#return-history table td:nth-child(10){width:5%!important;}
+  #return-history table th:nth-child(11),#return-history table td:nth-child(11){width:5%!important;}
+  #return-history table th:nth-child(12),#return-history table td:nth-child(12){width:6%!important;}
+  #return-history table th:nth-child(13),#return-history table td:nth-child(13){width:11%!important;}
+
+  /* 10% 미만 수주건 (16열 중 마지막 삭제 제외 15열: 수주자·수주일·수주처·품명코드·품명·수주량·수주단가·제조업체·발주처·발주단가·마진율·사유·저장일·확인날짜·업로드) */
+  #ord-history table th:nth-child(1),#ord-history table td:nth-child(1){width:6%!important;}
+  #ord-history table th:nth-child(2),#ord-history table td:nth-child(2){width:7%!important;}
+  #ord-history table th:nth-child(3),#ord-history table td:nth-child(3){width:8%!important;}
+  #ord-history table th:nth-child(4),#ord-history table td:nth-child(4){width:6%!important;}
+  #ord-history table th:nth-child(5),#ord-history table td:nth-child(5){width:13%!important;}
+  #ord-history table th:nth-child(6),#ord-history table td:nth-child(6){width:4%!important;}
+  #ord-history table th:nth-child(7),#ord-history table td:nth-child(7){width:6%!important;}
+  #ord-history table th:nth-child(8),#ord-history table td:nth-child(8){width:7%!important;}
+  #ord-history table th:nth-child(9),#ord-history table td:nth-child(9){width:7%!important;}
+  #ord-history table th:nth-child(10),#ord-history table td:nth-child(10){width:6%!important;}
+  #ord-history table th:nth-child(11),#ord-history table td:nth-child(11){width:5%!important;}
+  #ord-history table th:nth-child(12),#ord-history table td:nth-child(12){width:13%!important;}
+  #ord-history table th:nth-child(13),#ord-history table td:nth-child(13){width:4%!important;}
+  #ord-history table th:nth-child(14),#ord-history table td:nth-child(14){width:4%!important;}
+  #ord-history table th:nth-child(15),#ord-history table td:nth-child(15){width:4%!important;}
+
+  /* 숫자 컬럼은 좌우 여백을 좁게 */
+  table th[style*="text-align:right"],table td.td-num,table td.td-margin{padding-left:4px!important;padding-right:6px!important;}
+}
 </style>
 </head>
 <body>
@@ -941,6 +1020,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         </div>
         <button class="filter-btn" onclick="loadLowHistory()">조회</button>
         <button class="filter-reset" onclick="resetLowFilter()">초기화</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost print-btn" onclick="exportHistoryCsv('low')">⬇ CSV</button>
+        <button class="btn btn-ghost print-btn" onclick="printHistoryPanel('low')">🖨 PDF 출력</button>
       </div>
       <div class="stats-row" id="low-stats"></div>
       <div class="bulk-upload-bar" id="low-bulk-bar" style="display:none;">
@@ -1050,7 +1132,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <input type="text" id="ord-h-keyword" class="filter-input" placeholder="수주처/품명 검색" oninput="loadOrdHistory()" style="min-width:160px;">
         <button class="btn btn-ghost" onclick="loadOrdHistory()"><svg viewBox="0 0 24 24" fill="none" width="14" height="14" style="vertical-align:-2px;margin-right:3px;"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>조회</button>
         <button class="btn btn-ghost" onclick="showOrdBulkUploadModal()" style="border-color:#a8d0c0;color:#2e9e6e;font-weight:700;"><svg viewBox="0 0 24 24" fill="none" width="14" height="14" style="vertical-align:-2px;margin-right:3px;"><path d="M12 15V3m-4 4l4-4 4 4M4 21h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>이슈모니터 업로드 <span id="ord-bulk-count" style="opacity:.7;font-weight:600;"></span></button>
-        <button onclick="showOrdDeleteModal()" style="margin-left:auto;padding:6px 14px;font-size:12px;background:#fff;border:1.5px solid #e0a0a0;color:#c04040;border-radius:9px;font-weight:700;cursor:pointer;"><svg viewBox="0 0 24 24" fill="none" width="13" height="13" style="vertical-align:-2px;margin-right:3px;"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>선택 월 삭제</button>
+        <button class="btn btn-ghost print-btn" style="margin-left:auto;" onclick="exportHistoryCsv('ord')">⬇ CSV</button>
+        <button class="btn btn-ghost print-btn" onclick="printHistoryPanel('ord')">🖨 PDF 출력 (A3)</button>
+        <button onclick="showOrdDeleteModal()" style="padding:6px 14px;font-size:12px;background:#fff;border:1.5px solid #e0a0a0;color:#c04040;border-radius:9px;font-weight:700;cursor:pointer;"><svg viewBox="0 0 24 24" fill="none" width="13" height="13" style="vertical-align:-2px;margin-right:3px;"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>선택 월 삭제</button>
       </div>
 
       <div class="ord-kpi-row" id="ord-h-kpi" style="display:none;">
@@ -1198,6 +1282,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         </div>
         <button class="filter-btn" onclick="loadRetHistory()">조회</button>
         <button class="filter-reset" onclick="resetRetFilter()">초기화</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost print-btn" onclick="exportHistoryCsv('ret')">⬇ CSV</button>
+        <button class="btn btn-ghost print-btn" onclick="printHistoryPanel('ret')">🖨 PDF 출력</button>
       </div>
       <div class="stats-row" id="ret-stats"></div>
       <div class="bulk-upload-bar" id="ret-bulk-bar" style="display:none;">
@@ -1613,6 +1700,40 @@ async function extractPdfText(file) {
 
 // ── 공통 유틸 ─────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── 히스토리 표 인쇄(PDF 출력) / CSV 내보내기 (10%출고건 / 10%수주건 / 반품처리건 공용) ──
+function printHistoryPanel(kind){
+  const old=document.getElementById('print-page-size');
+  if(old) old.remove();
+  const style=document.createElement('style');
+  style.id='print-page-size';
+  // 10%미만 수주건(ord)은 컬럼이 16개라 A3 가로로, 나머지는 A4 가로로
+  style.textContent = kind==='ord'
+    ? '@page{size:A3 landscape;margin:8mm;}'
+    : '@page{size:A4 landscape;margin:10mm;}';
+  document.head.appendChild(style);
+  const cleanup=()=>{ style.remove(); window.removeEventListener('afterprint',cleanup); };
+  window.addEventListener('afterprint',cleanup);
+  window.print();
+}
+
+function exportHistoryCsv(kind){
+  const tbodyId = kind==='low' ? 'low-h-tbody' : kind==='ret' ? 'ret-h-tbody' : 'ord-h-tbody';
+  const tbody = document.getElementById(tbodyId);
+  const tbl = tbody ? tbody.closest('table') : null;
+  if(!tbl){ alert('표를 찾을 수 없습니다.'); return; }
+  const rows=[...tbl.querySelectorAll('tr')];
+  if(rows.length<=1){ alert('내보낼 데이터가 없습니다.'); return; }
+  const csv=rows.map(r=>{
+    const cells=[...r.querySelectorAll('th,td')];
+    if(cells.length>1) cells.pop(); // 맨 끝 수정/삭제(액션) 컬럼은 CSV에서 제외
+    return cells.map(c=>'"'+c.textContent.trim().replace(/"/g,'""')+'"').join(',');
+  }).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='report_'+kind+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
 function fmt(n){return n!=null?Number(n).toLocaleString('ko-KR'):'-';}
 function fmtDate(d){return d?String(d).replace(/^(\d{4})-(\d{2})-(\d{2})$/,'$1-$2-$3'):'-';}
 function parseDate(s){
