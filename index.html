@@ -622,41 +622,39 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
   #low-history table td:nth-child(11),
   #return-history table td:nth-child(12),
   #ord-history table td:nth-child(13),#ord-history table td:nth-child(14){white-space:nowrap!important;}
-  /* 표 맨 끝 "액션"(수정·삭제 버튼) 컬럼은 인쇄물엔 필요 없어 숨김 */
-  #low-history table th:last-child,#low-history table td:last-child,
-  #return-history table th:last-child,#return-history table td:last-child,
-  #ord-history table th:last-child,#ord-history table td:last-child{display:none!important;}
+  /* 표 맨 끝 "업로드"(내부 상태 배지)·"액션"(수정·삭제 버튼) 두 컬럼은 보고서에 필요 없어 숨김 */
+  #low-history table th:nth-last-child(-n+2),#low-history table td:nth-last-child(-n+2),
+  #return-history table th:nth-last-child(-n+2),#return-history table td:nth-last-child(-n+2),
+  #ord-history table th:nth-last-child(-n+2),#ord-history table td:nth-last-child(-n+2){display:none!important;}
 
-  /* 10% 미만 출고건 (13열 중 마지막 액션 제외 12열: 출고일·거래처·담당자·카달로그번호·품명·브랜드·입고가·출고가·마진율·사유·저장일·업로드) */
+  /* 10% 미만 출고건 (13열 중 마지막 업로드·액션 제외 11열: 출고일·거래처·담당자·카달로그번호·품명·브랜드·입고가·출고가·마진율·사유·저장일) */
   #low-history table th:nth-child(1),#low-history table td:nth-child(1){width:7%!important;}
   #low-history table th:nth-child(2),#low-history table td:nth-child(2){width:8%!important;}
   #low-history table th:nth-child(3),#low-history table td:nth-child(3){width:6%!important;}
   #low-history table th:nth-child(4),#low-history table td:nth-child(4){width:8%!important;}
-  #low-history table th:nth-child(5),#low-history table td:nth-child(5){width:15%!important;}
+  #low-history table th:nth-child(5),#low-history table td:nth-child(5){width:20%!important;}
   #low-history table th:nth-child(6),#low-history table td:nth-child(6){width:6%!important;}
   #low-history table th:nth-child(7),#low-history table td:nth-child(7){width:6%!important;}
   #low-history table th:nth-child(8),#low-history table td:nth-child(8){width:6%!important;}
   #low-history table th:nth-child(9),#low-history table td:nth-child(9){width:5%!important;}
-  #low-history table th:nth-child(10),#low-history table td:nth-child(10){width:17%!important;}
+  #low-history table th:nth-child(10),#low-history table td:nth-child(10){width:22%!important;}
   #low-history table th:nth-child(11),#low-history table td:nth-child(11){width:6%!important;}
-  #low-history table th:nth-child(12),#low-history table td:nth-child(12){width:10%!important;}
 
-  /* 반품처리건 (14열 중 마지막 액션 제외 13열: 반품일·담당자·코드·품명·수량·매입처·수주처·사유·처리내용·단가·합계·저장일·업로드) */
+  /* 반품처리건 (14열 중 마지막 업로드·액션 제외 12열: 반품일·담당자·코드·품명·수량·매입처·수주처·사유·처리내용·단가·합계·저장일) */
   #return-history table th:nth-child(1),#return-history table td:nth-child(1){width:7%!important;}
   #return-history table th:nth-child(2),#return-history table td:nth-child(2){width:6%!important;}
   #return-history table th:nth-child(3),#return-history table td:nth-child(3){width:7%!important;}
-  #return-history table th:nth-child(4),#return-history table td:nth-child(4){width:13%!important;}
+  #return-history table th:nth-child(4),#return-history table td:nth-child(4){width:19%!important;}
   #return-history table th:nth-child(5),#return-history table td:nth-child(5){width:4%!important;}
   #return-history table th:nth-child(6),#return-history table td:nth-child(6){width:8%!important;}
   #return-history table th:nth-child(7),#return-history table td:nth-child(7){width:8%!important;}
-  #return-history table th:nth-child(8),#return-history table td:nth-child(8){width:13%!important;}
+  #return-history table th:nth-child(8),#return-history table td:nth-child(8){width:18%!important;}
   #return-history table th:nth-child(9),#return-history table td:nth-child(9){width:7%!important;}
   #return-history table th:nth-child(10),#return-history table td:nth-child(10){width:5%!important;}
   #return-history table th:nth-child(11),#return-history table td:nth-child(11){width:5%!important;}
   #return-history table th:nth-child(12),#return-history table td:nth-child(12){width:6%!important;}
-  #return-history table th:nth-child(13),#return-history table td:nth-child(13){width:11%!important;}
 
-  /* 10% 미만 수주건 (16열 중 마지막 삭제 제외 15열: 수주자·수주일·수주처·품명코드·품명·수주량·수주단가·제조업체·발주처·발주단가·마진율·사유·저장일·확인날짜·업로드) */
+  /* 10% 미만 수주건 (16열 중 마지막 업로드·삭제 제외 14열: 수주자·수주일·수주처·품명코드·품명·수주량·수주단가·제조업체·발주처·발주단가·마진율·사유·저장일·확인날짜) */
   #ord-history table th:nth-child(1),#ord-history table td:nth-child(1){width:6%!important;}
   #ord-history table th:nth-child(2),#ord-history table td:nth-child(2){width:7%!important;}
   #ord-history table th:nth-child(3),#ord-history table td:nth-child(3){width:8%!important;}
@@ -668,10 +666,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
   #ord-history table th:nth-child(9),#ord-history table td:nth-child(9){width:7%!important;}
   #ord-history table th:nth-child(10),#ord-history table td:nth-child(10){width:6%!important;}
   #ord-history table th:nth-child(11),#ord-history table td:nth-child(11){width:5%!important;}
-  #ord-history table th:nth-child(12),#ord-history table td:nth-child(12){width:13%!important;}
+  #ord-history table th:nth-child(12),#ord-history table td:nth-child(12){width:17%!important;}
   #ord-history table th:nth-child(13),#ord-history table td:nth-child(13){width:4%!important;}
   #ord-history table th:nth-child(14),#ord-history table td:nth-child(14){width:4%!important;}
-  #ord-history table th:nth-child(15),#ord-history table td:nth-child(15){width:4%!important;}
 
   /* 숫자 컬럼은 좌우 여백을 좁게 */
   table th[style*="text-align:right"],table td.td-num,table td.td-margin{padding-left:4px!important;padding-right:6px!important;}
@@ -702,12 +699,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
     <select id="loginNameSelect" style="width:100%;box-sizing:border-box;padding:13px 16px;margin-bottom:10px;
       border-radius:10px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;outline:none;">
       <option value="" disabled selected>이름 선택</option>
-      <option value="서재란">서재란</option>
-      <option value="김유진">김유진</option>
-      <option value="김선우">김선우</option>
-      <option value="김민성">김민성</option>
-      <option value="임영재">임영재</option>
-      <option value="이나연">이나연</option>
     </select>
     <input type="password" id="loginPwInput" placeholder="Password" style="width:100%;box-sizing:border-box;padding:13px 16px;
       border-radius:10px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:14px;
@@ -737,6 +728,26 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         </label>
       </div>
       <div id="gateToggleMsg" style="font-size:11px;color:#8b8fb0;margin-top:6px;"></div>
+    </div>
+    <div id="acctMgmtWrap" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(201,162,42,.15);">
+      <div style="font-size:12px;color:#8b8fb0;margin-bottom:8px;">계정 관리 (마스터 전용)</div>
+      <div id="acctList" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px dashed rgba(201,162,42,.2);">
+        <div style="font-size:11px;color:#8b8fb0;">새 계정 추가 (초기 비밀번호는 공통 초기값으로 자동 설정됨)</div>
+        <div style="display:flex;gap:6px;">
+          <input id="acctNewName" placeholder="이름" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+          <input id="acctNewCompany" placeholder="법인 (예: 드림셀)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+        </div>
+        <div style="display:flex;gap:6px;">
+          <input id="acctNewDept" placeholder="부서 (예: 관리부)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+          <select id="acctNewRole" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid rgba(201,162,42,.3);background:#161616;color:#fff;font-size:13px;">
+            <option value="member">일반(member)</option>
+            <option value="master">마스터(master)</option>
+          </select>
+        </div>
+        <button onclick="addStaffAccount()" style="padding:8px 0;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#0B0B0B;background:linear-gradient(90deg,#c9a22a,#f5c842);">+ 계정 추가</button>
+        <div id="acctMsg" style="font-size:11px;min-height:14px;text-align:center;"></div>
+      </div>
     </div>
     <div id="pwModalUserSelectWrap" style="display:none;margin-bottom:14px;">
       <label style="font-size:12px;color:#8b8fb0;display:block;margin-bottom:6px;">대상 사용자 (마스터 전용)</label>
@@ -780,6 +791,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
 <!-- ══ 허브 ══ -->
 <div class="hub-section">
   <div class="hub-container">
+    <!-- 법인별로 카드를 가리고 싶으면 카드 엘리먼트에 data-company="드림셀인스" 처럼 붙이면 됨.
+         (applyCompanyGate()가 로그인한 계정의 법인과 비교해서 자동으로 숨김/표시함.
+          지금은 전 계정이 '드림셀' 소속이라 아직 아무 카드에도 안 걸어뒀음.) -->
 
     <!-- ── 텍스트 레이블 ── -->
     <!-- 반품: 위 -->
@@ -1365,7 +1379,108 @@ const LOGIN_GATE_ENABLED = true; // true로 바꾸면 로그인 화면 다시 �
 const AUTH_STORAGE_KEY = 'dc_up_auth_until';
 const AUTH_USER_KEY = 'dc_up_auth_user';
 const AUTH_SESSION_DAYS = 7;
-const LOGIN_USERS = ['서재란','김유진','김선우','김민성','임영재','이나연'];
+// 계정 목록은 Supabase app_config에 'staff_accounts' 키(JSON 배열)로 저장해서 화면에서 관리 가능.
+// 아래 SEED는 "DB에 아직 아무것도 없을 때"의 초기값(첫 실행 시 이걸로 DB를 채움) — 코드 수정 없이 화면에서 계정을 추가/변경하려면 이제 이 배열이 아니라 DB 값을 봐야 함.
+const LOGIN_USERS_SEED = [
+  {name:'서재란', company:'드림셀', department:'관리부', role:'member'},
+  {name:'김유진', company:'드림셀', department:'관리부', role:'member'},
+  {name:'김선우', company:'드림셀', department:'관리부', role:'member'},
+  {name:'김민성', company:'드림셀', department:'관리부', role:'member'},
+  {name:'임영재', company:'드림셀', department:'관리부', role:'master'},
+  {name:'이나연', company:'드림셀', department:'관리부', role:'member'},
+];
+let LOGIN_USERS = [...LOGIN_USERS_SEED]; // DB 로드 완료 전까지는 SEED로 동작, loadStaffAccounts()가 끝나면 교체됨
+let LOGIN_USER_NAMES = LOGIN_USERS.map(u=>u.name);
+function findLoginUser(name){ return LOGIN_USERS.find(u=>u.name===name) || null; }
+const AUTH_COMPANY_KEY = 'dc_up_auth_company';
+const AUTH_DEPT_KEY = 'dc_up_auth_dept';
+const AUTH_ROLE_KEY = 'dc_up_auth_role';
+
+// ── 계정 목록 로드/저장 (app_config: key='staff_accounts') ──
+async function loadStaffAccounts(){
+  try{
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/app_config?key=eq.staff_accounts&select=value`);
+    const data = await resp.json();
+    if(data && data[0] && Array.isArray(data[0].value) && data[0].value.length){
+      LOGIN_USERS = data[0].value;
+    } else {
+      // DB에 아직 없으면 SEED로 최초 저장
+      LOGIN_USERS = [...LOGIN_USERS_SEED];
+      await upsertConfig('staff_accounts', LOGIN_USERS);
+    }
+  }catch(e){
+    console.warn('계정 목록 로드 실패, 코드 내 기본값(SEED) 사용:', e);
+    LOGIN_USERS = [...LOGIN_USERS_SEED];
+  }
+  LOGIN_USER_NAMES = LOGIN_USERS.map(u=>u.name);
+  renderLoginNameOptions();
+}
+function renderLoginNameOptions(){
+  const sel = document.getElementById('loginNameSelect');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="" disabled selected>이름 선택</option>' +
+    LOGIN_USER_NAMES.map(u=>`<option value="${u}">${u}</option>`).join('');
+  if(cur && LOGIN_USER_NAMES.includes(cur)) sel.value = cur;
+}
+async function saveStaffAccounts(){
+  await upsertConfig('staff_accounts', LOGIN_USERS);
+  LOGIN_USER_NAMES = LOGIN_USERS.map(u=>u.name);
+  renderLoginNameOptions();
+  applyCompanyGate();
+}
+
+// ── 계정 관리 UI (pwModal 안, 마스터 전용) ──
+function renderAcctList(){
+  const wrap = document.getElementById('acctList');
+  if(!wrap) return;
+  wrap.innerHTML = LOGIN_USERS.map((u,i)=>`
+    <div style="display:flex;gap:6px;align-items:center;background:#161616;border:1px solid rgba(201,162,42,.15);border-radius:8px;padding:6px 8px;">
+      <span style="width:64px;flex-shrink:0;font-size:12px;color:#fff;">${u.name}</span>
+      <input value="${u.company}" onchange="updateAcctField(${i},'company',this.value)" placeholder="법인"
+        style="flex:1;min-width:0;padding:5px 8px;border-radius:6px;border:1px solid rgba(201,162,42,.25);background:#0B0B0B;color:#fff;font-size:12px;">
+      <input value="${u.department}" onchange="updateAcctField(${i},'department',this.value)" placeholder="부서"
+        style="flex:1;min-width:0;padding:5px 8px;border-radius:6px;border:1px solid rgba(201,162,42,.25);background:#0B0B0B;color:#fff;font-size:12px;">
+      <select onchange="updateAcctField(${i},'role',this.value)" style="padding:5px 6px;border-radius:6px;border:1px solid rgba(201,162,42,.25);background:#0B0B0B;color:#fff;font-size:12px;">
+        <option value="member" ${u.role==='member'?'selected':''}>일반</option>
+        <option value="master" ${u.role==='master'?'selected':''}>마스터</option>
+      </select>
+    </div>`).join('');
+}
+async function updateAcctField(idx, field, value){
+  if(!LOGIN_USERS[idx]) return;
+  LOGIN_USERS[idx][field] = value;
+  try{
+    await saveStaffAccounts();
+    const msg = document.getElementById('acctMsg');
+    if(msg){ msg.style.color='#7CE0A0'; msg.textContent='저장됨'; setTimeout(()=>{ if(msg.textContent==='저장됨') msg.textContent=''; }, 1500); }
+  }catch(e){
+    const msg = document.getElementById('acctMsg');
+    if(msg){ msg.style.color='#ff8f8f'; msg.textContent='저장 실패: '+e.message; }
+  }
+}
+async function addStaffAccount(){
+  const name = document.getElementById('acctNewName').value.trim();
+  const company = document.getElementById('acctNewCompany').value.trim();
+  const department = document.getElementById('acctNewDept').value.trim();
+  const role = document.getElementById('acctNewRole').value;
+  const msg = document.getElementById('acctMsg');
+  if(!name || !company){ msg.style.color='#ff8f8f'; msg.textContent='이름과 법인은 필수예요'; return; }
+  if(LOGIN_USERS.some(u=>u.name===name)){ msg.style.color='#ff8f8f'; msg.textContent='이미 있는 이름이에요'; return; }
+  LOGIN_USERS.push({name, company, department, role});
+  try{
+    await saveStaffAccounts();
+    renderAcctList();
+    document.getElementById('acctNewName').value='';
+    document.getElementById('acctNewCompany').value='';
+    document.getElementById('acctNewDept').value='';
+    document.getElementById('acctNewRole').value='member';
+    msg.style.color='#7CE0A0'; msg.textContent=`${name} 계정이 추가됐어요 (초기 비밀번호: 공통 초기값)`;
+  }catch(e){
+    LOGIN_USERS.pop(); // 저장 실패했으면 방금 추가한 것도 되돌림
+    msg.style.color='#ff8f8f'; msg.textContent='추가 실패: '+e.message;
+  }
+}
 const AUTH_FALLBACK_HASH = 'c6ad3ffe8e7a206263e77ad34e43e55da3f9d03d98ec1de95fdcb2b26ccdd195'; // dr2068619187 (DB 조회 실패 시 폴백, 전원 공통 초기 비밀번호)
 
 async function sha256Hex(text){
@@ -1405,7 +1520,25 @@ function doLogout(){
   if(!confirm('로그아웃 하시겠습니까?')) return;
   localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem(AUTH_USER_KEY);
+  localStorage.removeItem(AUTH_COMPANY_KEY);
+  localStorage.removeItem(AUTH_DEPT_KEY);
+  localStorage.removeItem(AUTH_ROLE_KEY);
   location.reload();
+}
+
+// ── 법인 기반 메뉴 가림막 ──────────────────────────────
+// 허브 카드에 data-company="드림셀인스" 같은 속성을 걸어두면, 로그인한 계정의 company와
+// 다를 때 그 카드를 숨긴다. data-company가 없는 카드는 지금처럼 전 법인 공통으로 보임.
+// ⚠ 이건 "화면단 가림막"일 뿐이고 진짜 데이터 접근 차단(RLS)은 아직 아니라서,
+//    나중에 여러 법인 자료가 실제로 섞이게 되면 서버(Supabase RLS) 단에서도 반드시 막아야 함.
+function applyCompanyGate(){
+  const myCompany = localStorage.getItem(AUTH_COMPANY_KEY) || '';
+  const myRole = localStorage.getItem(AUTH_ROLE_KEY) || 'member';
+  document.querySelectorAll('[data-company]').forEach(el=>{
+    const need = el.getAttribute('data-company');
+    const allowed = myRole === 'master' || !need || need === myCompany;
+    el.style.display = allowed ? '' : 'none';
+  });
 }
 
 // ── 비밀번호 관리 (마스터: 임영재는 전원 조회/변경 가능) ──
@@ -1485,19 +1618,22 @@ async function onGateToggleChange(){
 function openPwModal(){
   const loggedInUser = localStorage.getItem(AUTH_USER_KEY);
   if(!loggedInUser) return;
-  const isMaster = loggedInUser === '임영재';
+  const isMaster = (findLoginUser(loggedInUser)?.role === 'master');
   const modal = document.getElementById('pwModal');
   const selectWrap = document.getElementById('pwModalUserSelectWrap');
   const select = document.getElementById('pwModalUserSelect');
   if(isMaster){
     selectWrap.style.display = 'block';
-    select.innerHTML = LOGIN_USERS.map(u=>`<option value="${u}">${u}</option>`).join('');
+    select.innerHTML = LOGIN_USER_NAMES.map(u=>`<option value="${u}">${u}</option>`).join('');
     select.value = loggedInUser;
     document.getElementById('gateToggleWrap').style.display = 'block';
     getGateEnabled().then(renderGateToggle);
+    document.getElementById('acctMgmtWrap').style.display = 'block';
+    renderAcctList();
   } else {
     selectWrap.style.display = 'none';
     document.getElementById('gateToggleWrap').style.display = 'none';
+    document.getElementById('acctMgmtWrap').style.display = 'none';
   }
   modal.style.display = 'flex';
   document.getElementById('pwModalMsg').textContent = '';
@@ -1528,7 +1664,7 @@ function togglePwVisible(){
 
 function currentPwModalTarget(){
   const loggedInUser = localStorage.getItem(AUTH_USER_KEY);
-  const isMaster = loggedInUser === '임영재';
+  const isMaster = (findLoginUser(loggedInUser)?.role === 'master');
   return isMaster ? document.getElementById('pwModalUserSelect').value : loggedInUser;
 }
 
@@ -1575,7 +1711,7 @@ async function attemptLogin(){
   const btn = document.getElementById('loginSubmitBtn');
   const name = nameSel.value;
   const pw = input.value;
-  if(!name || !LOGIN_USERS.includes(name) || !pw){
+  if(!name || !LOGIN_USER_NAMES.includes(name) || !pw){
     errEl.textContent = '이름과 비밀번호를 모두 입력해주세요';
     errEl.style.display = 'block';
     return;
@@ -1587,7 +1723,14 @@ async function attemptLogin(){
     if(inputHash === storedHash){
       localStorage.setItem(AUTH_STORAGE_KEY, String(Date.now() + AUTH_SESSION_DAYS*24*60*60*1000));
       localStorage.setItem(AUTH_USER_KEY, name);
+      const u = findLoginUser(name);
+      if(u){
+        localStorage.setItem(AUTH_COMPANY_KEY, u.company || '');
+        localStorage.setItem(AUTH_DEPT_KEY, u.department || '');
+        localStorage.setItem(AUTH_ROLE_KEY, u.role || 'member');
+      }
       hideLoginOverlay();
+      applyCompanyGate();
     } else {
       errEl.textContent = '이름 또는 비밀번호가 올바르지 않습니다';
       errEl.style.display = 'block';
@@ -1600,9 +1743,10 @@ async function attemptLogin(){
 }
 
 (async function initLoginGate(){
+  await loadStaffAccounts(); // 계정 목록(법인/부서/역할 포함)을 DB에서 불러온 뒤에 로그인 화면을 채움
   const enabled = await getGateEnabled();
-  if(!enabled){ hideLoginOverlay(); return; }
-  if(isAuthValid()){ hideLoginOverlay(); }
+  if(!enabled){ hideLoginOverlay(); applyCompanyGate(); return; }
+  if(isAuthValid()){ hideLoginOverlay(); applyCompanyGate(); }
   const btn = document.getElementById('loginSubmitBtn');
   const input = document.getElementById('loginPwInput');
   const nameSel = document.getElementById('loginNameSelect');
@@ -2734,8 +2878,12 @@ async function deleteHistoryRow(tab, id, btn) {
     // 3. 이슈모니터DB도 동일 건 삭제
     //    우선 source_id(업로더 원본 id)로 정확히 매칭 — 중복 건이 있어도 안전
     //    source_id가 비어있는 과거 데이터는 날짜+코드+거래처로 폴백 매칭
+    //    ⚠ 요청 자체가 실패(네트워크/서버 오류)했을 때와 "매칭되는 행이 0건"이었을 때를
+    //    구분해서, 전자는 반드시 실패로 보고한다 (조용히 성공 처리하지 않음).
+    let imFailed = false, imErrMsg = '';
     const delByQuery = async (q) => {
       const r = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/${tbl}?${q}`, 'DELETE', null, 'return=minimal,count=exact');
+      if(!r.ok){ imFailed = true; imErrMsg = await r.text().catch(()=>''); return 0; }
       const cr = r.headers.get('content-range'); // 예: "*/2"
       const count = cr ? parseInt(cr.split('/')[1],10) : null;
       return count;
@@ -2743,7 +2891,7 @@ async function deleteHistoryRow(tab, id, btn) {
 
     let deletedCount = await delByQuery(`source_id=eq.${id}`);
 
-    if(!deletedCount && rows && rows.length){
+    if(!deletedCount && rows && rows.length && !imFailed){
       const r = rows[0];
       let fallbackQ;
       if(isLow){
@@ -2754,7 +2902,16 @@ async function deleteHistoryRow(tab, id, btn) {
       deletedCount = await delByQuery(fallbackQ);
     }
 
-    setStatus('🗑️ 삭제 완료 — 이슈모니터에도 반영됐습니다','','');
+    if(imFailed){
+      console.error('[히스토리 삭제] 업로더DB는 삭제됐지만 이슈모니터DB 삭제 요청 실패:', imErrMsg);
+      setStatus('⚠️ 업로더에서는 삭제됐지만 이슈모니터 반영에 실패했습니다 — 수동 확인 필요','','error');
+    } else if(!deletedCount){
+      // 요청은 정상 처리됐지만 매칭되는 행이 없었던 경우 — 원래 이슈모니터에 없던 건일 수도 있으니
+      // 실패로 단정하진 않되, "정말 반영됐는지"는 명확히 다르게 안내한다.
+      setStatus('🗑️ 업로더에서 삭제됨 (이슈모니터에서 일치하는 건은 찾지 못했습니다)','','');
+    } else {
+      setStatus('🗑️ 삭제 완료 — 이슈모니터에도 반영됐습니다','','');
+    }
     if(isLow) loadLowHistory(); else loadRetHistory();
   } catch(e){
     alert('❌ 삭제 실패: '+e.message);
@@ -3535,14 +3692,26 @@ async function deleteOrdRow(id) {
     if(!res.ok) throw new Error(await res.text());
 
     // 3. 이슈모니터DB도 동일 건 삭제 (orderer+order_date+item_code 매칭)
+    //    ⚠ 여기서 실패해도 조용히 넘어가지 않도록 반드시 결과를 확인한다 —
+    //    업로더DB는 지워졌는데 이슈모니터DB엔 남아있는 "반쪽 삭제" 상태를 방지.
+    let imOk = true, imErrMsg = '';
     if(rows && rows.length) {
       const r = rows[0];
-      await sbFetch(ISSUE_URL, ISSUE_KEY,
-        `/rest/v1/orders?orderer=eq.${encodeURIComponent(r.orderer)}&order_date=eq.${r.order_date}&item_code=eq.${encodeURIComponent(r.item_code)}`,
-        'DELETE', null, 'return=minimal');
+      try {
+        const imRes = await sbFetch(ISSUE_URL, ISSUE_KEY,
+          `/rest/v1/orders?orderer=eq.${encodeURIComponent(r.orderer)}&order_date=eq.${r.order_date}&item_code=eq.${encodeURIComponent(r.item_code)}`,
+          'DELETE', null, 'return=minimal');
+        if(!imRes.ok){ imOk = false; imErrMsg = await imRes.text().catch(()=>''); }
+      } catch(imErr) { imOk = false; imErrMsg = imErr.message; }
     }
 
-    showToast('🗑️ 삭제 완료 — 이슈모니터에도 반영됐습니다','success');
+    if(imOk){
+      showToast('🗑️ 삭제 완료 — 이슈모니터에도 반영됐습니다','success');
+    } else {
+      // 업로더DB는 이미 지워졌으니 되돌릴 수 없다 — 반드시 눈에 띄게 알리고 콘솔에도 상세를 남긴다
+      console.error('[수주건 삭제] 업로더DB는 삭제됐지만 이슈모니터DB 삭제 실패:', imErrMsg);
+      showToast('⚠️ 업로더에서는 삭제됐지만 이슈모니터 반영에 실패했습니다 — 수동 확인 필요','error');
+    }
     setTimeout(()=>loadOrdHistory(), 400);
   } catch(e){ showToast('삭제 오류: '+e.message,'error'); }
 }
@@ -3586,12 +3755,22 @@ async function doOrdMonthDelete() {
     if(!res.ok) throw new Error(await res.text());
 
     // 2. 이슈모니터DB도 삭제 (order_date 기준)
-    await sbFetch(ISSUE_URL, ISSUE_KEY,
-      `/rest/v1/orders?order_date=gte.${ym}-01&order_date=lt.${nm}-01`,
-      'DELETE', null, 'return=minimal');
+    //    ⚠ 업로더DB는 이미 지워진 뒤라 되돌릴 수 없다 — 이 단계 실패를 반드시 확인하고 알린다.
+    let imOk = true, imErrMsg = '';
+    try {
+      const imRes = await sbFetch(ISSUE_URL, ISSUE_KEY,
+        `/rest/v1/orders?order_date=gte.${ym}-01&order_date=lt.${nm}-01`,
+        'DELETE', null, 'return=minimal');
+      if(!imRes.ok){ imOk = false; imErrMsg = await imRes.text().catch(()=>''); }
+    } catch(imErr) { imOk = false; imErrMsg = imErr.message; }
 
     document.getElementById('ord-delete-modal').style.display = 'none';
-    showToast(`🗑️ ${ym} 수주건 전체 삭제 완료 — 이슈모니터에도 반영됐습니다`,'success');
+    if(imOk){
+      showToast(`🗑️ ${ym} 수주건 전체 삭제 완료 — 이슈모니터에도 반영됐습니다`,'success');
+    } else {
+      console.error(`[${ym} 월 삭제] 업로더DB는 삭제됐지만 이슈모니터DB 삭제 실패:`, imErrMsg);
+      showToast(`⚠️ 업로더에서는 ${ym} 삭제됐지만 이슈모니터 반영에 실패했습니다 — 수동 확인 필요`,'error');
+    }
     setTimeout(()=>loadOrdHistory(), 500);
   } catch(e){
     showToast('삭제 오류: '+e.message,'error');
