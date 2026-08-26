@@ -597,14 +597,16 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
 #ord-del-confirm-btn:disabled{opacity:.4;cursor:not-allowed;}
 
 /* ══════════════ 히스토리 표 인쇄(PDF 출력) ══════════════
-   기본 A4 가로, 10%미만 수주건(ord)은 컬럼이 많아 printHistoryPanel()이
-   인쇄 직전에 A3 가로로 @page를 바꿔 끼운다. 여기선 무엇을 숨기고
-   표를 어떻게 종이 폭에 맞출지만 담당. */
+   세 탭(10%출고건/반품처리건/10%수주건) 모두 A4 가로 한 규격으로 통일.
+   여기선 무엇을 숨기고 표를 어떻게 종이 폭에 맞출지만 담당. */
 @media print{
   @page{size:A4 landscape;margin:10mm;}
   body{background:#fff;}
   #loginOverlay,#toast-container,.hub-section,.back-btn,.sub-tabs,
-  .filter-bar,.bulk-upload-bar,.print-btn{display:none!important;}
+  .filter-bar,.bulk-upload-bar,.print-btn,
+  .hero,.status-bar,
+  #pwModal,#ord-delete-modal,#ord-month-modal,#ord-bulk-month-modal,
+  #hist-edit-modal,#ord-maker-reason-modal,#ord-group-modal,#reason-modal{display:none!important;}
   .panel-area{padding:0!important;display:block!important;}
   .table-wrap{overflow:visible!important;box-shadow:none!important;border:none!important;background:#fff!important;}
   .stats-row,.ord-kpi-row{page-break-inside:avoid;}
@@ -1133,7 +1135,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.5);}
         <button class="btn btn-ghost" onclick="loadOrdHistory()"><svg viewBox="0 0 24 24" fill="none" width="14" height="14" style="vertical-align:-2px;margin-right:3px;"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>조회</button>
         <button class="btn btn-ghost" onclick="showOrdBulkUploadModal()" style="border-color:#a8d0c0;color:#2e9e6e;font-weight:700;"><svg viewBox="0 0 24 24" fill="none" width="14" height="14" style="vertical-align:-2px;margin-right:3px;"><path d="M12 15V3m-4 4l4-4 4 4M4 21h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>이슈모니터 업로드 <span id="ord-bulk-count" style="opacity:.7;font-weight:600;"></span></button>
         <button class="btn btn-ghost print-btn" style="margin-left:auto;" onclick="exportHistoryCsv('ord')">⬇ CSV</button>
-        <button class="btn btn-ghost print-btn" onclick="printHistoryPanel('ord')">🖨 PDF 출력 (A3)</button>
+        <button class="btn btn-ghost print-btn" onclick="printHistoryPanel('ord')">🖨 PDF 출력</button>
         <button onclick="showOrdDeleteModal()" style="padding:6px 14px;font-size:12px;background:#fff;border:1.5px solid #e0a0a0;color:#c04040;border-radius:9px;font-weight:700;cursor:pointer;"><svg viewBox="0 0 24 24" fill="none" width="13" height="13" style="vertical-align:-2px;margin-right:3px;"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>선택 월 삭제</button>
       </div>
 
@@ -1703,17 +1705,6 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 // ── 히스토리 표 인쇄(PDF 출력) / CSV 내보내기 (10%출고건 / 10%수주건 / 반품처리건 공용) ──
 function printHistoryPanel(kind){
-  const old=document.getElementById('print-page-size');
-  if(old) old.remove();
-  const style=document.createElement('style');
-  style.id='print-page-size';
-  // 10%미만 수주건(ord)은 컬럼이 16개라 A3 가로로, 나머지는 A4 가로로
-  style.textContent = kind==='ord'
-    ? '@page{size:A3 landscape;margin:8mm;}'
-    : '@page{size:A4 landscape;margin:10mm;}';
-  document.head.appendChild(style);
-  const cleanup=()=>{ style.remove(); window.removeEventListener('afterprint',cleanup); };
-  window.addEventListener('afterprint',cleanup);
   window.print();
 }
 
