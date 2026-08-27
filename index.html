@@ -2676,7 +2676,10 @@ function handlePaste(e, tbody, cols) {
     const cells = tr.querySelectorAll('.manual-input');
     rowData.forEach((val, ci) => {
       const cell = cells[startColIdx + ci];
-      if (cell) cell.value = val.trim();
+      if (cell) {
+        cell.value = val.trim();
+        cell.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     });
   });
 }
@@ -2760,6 +2763,18 @@ function makeRetManualRow(data={}) {
     makeCell('number', data.total||''),
   ].join('');
   tr.addEventListener('paste', e => handlePaste(e, document.getElementById('ret-manual-tbody'), makeRetManualRow));
+
+  // 수량 × 단가 → 합계 자동 계산 (합계 칸은 직접 수정도 가능하게 남겨둠)
+  const cellInputs = tr.querySelectorAll('.manual-input');
+  const qtyInput = cellInputs[4], priceInput = cellInputs[9], totalInput = cellInputs[10];
+  const recalcRetTotal = () => {
+    const q = parseFloat(qtyInput.value);
+    const p = parseFloat(priceInput.value);
+    if(!isNaN(q) && !isNaN(p)) totalInput.value = q * p;
+  };
+  qtyInput.addEventListener('input', recalcRetTotal);
+  priceInput.addEventListener('input', recalcRetTotal);
+
   return tr;
 }
 
