@@ -2265,19 +2265,19 @@ async function loadLowHistory(){
     if(!data.length){tbody.innerHTML='<tr class="loading-row"><td colspan="11"><div class="empty-state"><div class="ei">📭</div>조회 결과가 없습니다</div></td></tr>';return;}
     tbody.innerHTML=data.map(r=>`<tr>
       <td class="td-date">${fmtDate(r.ship_date)}</td>
-      <td>${esc(r.customer_name||'-')}</td>
-      <td>${esc(r.rep||'-')}</td>
+      <td style="white-space:nowrap;">${esc(r.customer_name||'-')}</td>
+      <td style="white-space:nowrap;">${esc(r.rep||'-')}</td>
       <td class="td-cat">${esc(r.catalog_no||'-')}</td>
       <td>${esc(r.item_name||'-')}</td>
-      <td>${esc(r.brand||'-')}</td>
+      <td style="white-space:nowrap;">${esc(r.brand||'-')}</td>
       <td class="td-num">${fmt(r.cost_price)}</td>
       <td class="td-num">${fmt(r.sale_price)}</td>
       <td class="td-margin">${r.margin_rate!=null?r.margin_rate+'%':'-'}</td>
       <td style="max-width:220px;white-space:normal;word-break:break-word;">${esc(r.reason||'-')}</td>
-      <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
+      <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${fmtDate(r.created_at?.slice(0,10))}</td>
       <td>${r.is_uploaded
-        ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);">✅ 완료</span>'
-        : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);">⬜ 미업로드</span>'}
+        ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>'
+        : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미업로드</span>'}
       </td>
       <td style="white-space:nowrap;">
         <button onclick="editHistoryRow('low','${r.id}',this)" title="수정" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">✏️</button>
@@ -2533,20 +2533,20 @@ async function loadRetHistory(){
     if(!data.length){tbody.innerHTML='<tr class="loading-row"><td colspan="12"><div class="empty-state"><div class="ei">📭</div>조회 결과가 없습니다</div></td></tr>';return;}
     tbody.innerHTML=data.map(r=>`<tr>
       <td class="td-date">${fmtDate(r.return_date)}</td>
-      <td>${esc(r.rep||'-')}</td>
+      <td style="white-space:nowrap;">${esc(r.rep||'-')}</td>
       <td class="td-cat">${esc(r.code||'-')}</td>
       <td>${esc(r.item_name||'-')}</td>
       <td class="td-num">${fmt(r.qty)}</td>
-      <td>${esc(r.supplier||'-')}</td>
-      <td>${esc(r.customer_name||'-')}</td>
+      <td style="white-space:nowrap;">${esc(r.supplier||'-')}</td>
+      <td style="white-space:nowrap;">${esc(r.customer_name||'-')}</td>
       <td style="max-width:220px;white-space:normal;word-break:break-word;">${esc(r.reason||'-')}</td>
       <td>${(()=>{const raw=r.process||'-';const first=raw.split('\n')[0];const c={반품완료:{bg:'rgba(56,184,126,0.12)',fg:'#38b87e'},재고사용:{bg:'rgba(74,127,193,0.12)',fg:'#4a7fc1'},악성재고:{bg:'rgba(220,80,80,0.12)',fg:'#d95f5f'},반품처리중:{bg:'var(--warn-dim)',fg:'var(--warn)'}}[first]||{bg:'var(--surface2)',fg:'var(--text-muted)'};return `<span data-raw="${esc(raw)}" style="background:${c.bg};color:${c.fg};font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:pre-line;line-height:1.4;display:inline-block;">${esc(raw)}</span>`;})()}</td>
       <td class="td-num">${fmt(r.unit_price)}</td>
       <td class="td-num" style="font-weight:700;color:var(--accent2)">${fmt(r.total)}</td>
-      <td style="font-size:11px;color:var(--text-muted)">${fmtDate(r.created_at?.slice(0,10))}</td>
+      <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${fmtDate(r.created_at?.slice(0,10))}</td>
       <td>${r.is_uploaded
-        ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);">✅ 완료</span>'
-        : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);">⬜ 미업로드</span>'}
+        ? '<span style="background:rgba(56,184,126,0.12);color:#38b87e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(56,184,126,0.3);white-space:nowrap;">✅ 완료</span>'
+        : '<span style="background:rgba(74,127,193,0.1);color:#6a9fd4;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(74,127,193,0.2);white-space:nowrap;">⬜ 미업로드</span>'}
       </td>
       <td style="white-space:nowrap;">
         <button onclick="editHistoryRow('ret','${r.id}',this)" title="수정" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 5px;color:var(--text-sub);">✏️</button>
