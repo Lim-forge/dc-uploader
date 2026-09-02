@@ -3457,6 +3457,14 @@ async function doSaveOrd() {
   const btn = document.getElementById('ord-save-btn');
   btn.disabled=true; btn.textContent='저장 중...';
   try {
+    // 히스토리 월 구분 기준(created_at)을 "저장 누른 시각"이 아니라
+    // 모달에서 실제로 선택한 월(ym)로 맞춰준다. (시/분/초는 실제 저장 시각 유지)
+    const _now = new Date();
+    const _hh = String(_now.getHours()).padStart(2,'0');
+    const _mi = String(_now.getMinutes()).padStart(2,'0');
+    const _ss = String(_now.getSeconds()).padStart(2,'0');
+    const createdAtForYm = `${ym}-01T${_hh}:${_mi}:${_ss}`;
+
     const payload = window._ordRows.map(r=>({
       orderer:r.orderer, order_date:ordFmtDate(r.order_date),
       customer_name:r.customer_name, item_code:r.item_code,
@@ -3464,7 +3472,8 @@ async function doSaveOrd() {
       order_price:r.order_price||null,
       maker:r.maker, po_vendor:r.po_vendor,
       po_price:r.po_price||null, margin_rate:r.margin_rate||null,
-      reason:null
+      reason:null,
+      created_at:createdAtForYm
     }));
     const res = await sbFetch(ORD_SUPA_URL, ORD_SUPA_KEY, '/rest/v1/orders', 'POST', payload, 'return=representation');
     if(!res.ok) throw new Error(await res.text());
