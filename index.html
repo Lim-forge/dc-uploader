@@ -2063,127 +2063,153 @@ async function parseLowPdf(text, file){
   const shipM   =text.match(/출고일\s+([\d\-]+)/);
   // 거래처명은 "주식회사 에이프릴바이오"처럼 공백이 들어갈 수 있어 그 줄 전체를 잡는다 (기존 \S+는 첫 단어에서 끊김)
   const custM   =text.match(/거래처명\s+(.+)/);
-  // 10% 미만 사유: "합계 합계" 다음 ~ "1." 또는 "Dreamcell" 앞
-  const sayuM = text.match(/합계\s+합계[^\n]*\n([\s\S]+?)(?=\s*1[.．]|\nDreamcell|\n1\/|\f)/);
   const docNo   =docNoM?docNoM[1]:null;
   const drafter =drafterM?drafterM[1].replace(/(대리|과장|차장|부장|사원|이사|팀장|주임)$/,'').trim():null;
   const shipDate=shipM?shipM[1]:null;
   const customer=custM?custM[1].trim():null;
-  const _sayuRaw = sayuM ? sayuM[1] : '';
-  // 사유 키워드, 앞의 거래처줄, Dreamcell 이후 제거
-  const sayuRaw = _sayuRaw
-    .replace(/\n?\s*사유\s*/g, ' ')
-    .replace(/^[^가-힣]*(?=해당|업체|나이트|수주|주거|라텍)/, '')
-    .replace(/\s*Dreamcell.*$/s, '')
-    .replace(/\s+/g, ' ')
-    .trim();
 
-  // 제품코드/제품명/브랜드/입고가/출고가/마진율은 텍스트 추측(정규식)이 아니라
-  // PDF 표의 실제 칸 위치(x좌표)로 읽는다. "코드가 S로 시작한다" 같은 형식 가정을 두면
-  // 코드 형식이 다른 문서(숫자형, 소문자형 등)에서 엉뚱한 단어를 코드로 잘못 집어오게 된다.
-  const products = await extractProductRowsByColumn(file);
+  // 제품 표(제품코드/제품명/브랜드/입고가/출고가/마진율)와 사유(reason) 문단은
+  // 텍스트 추측(정규식)이 아니라 PDF의 실제 칸·문단 위치(x, y좌표)로 읽는다.
+  // "코드가 S로 시작한다" 같은 형식 가정이나 "다음 줄이 Dreamcell 푸터다" 같은 위치 가정은
+  // 코드 형식이 다르거나 사유가 다음 페이지로 넘어가는 순간 깨지기 때문.
+  const pages = file ? await getPdfItemsByPage(file) : [];
+  const products = extractProductRowsByColumn(pages);
+  const sayuRaw   = extractReasonByColumn(pages);
 
   return{docNo,drafter,shipDate,customer,sayuRaw,products};
+}
+
+// PDF 한 장을 페이지별 텍스트 아이템(x, y좌표 + 글자)으로 통째로 읽어온다.
+// 제품 표 추출과 사유 추출이 이 결과를 함께 사용한다 (PDF를 두 번 열지 않도록).
+async function getPdfItemsByPage(file){
+  try{
+    const ab=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    const pages=[];
+    for(let pi=1; pi<=pdf.numPages; pi++){
+      const page=await pdf.getPage(pi);
+      const vp=await page.getViewport({scale:1});
+      const ct=await page.getTextContent();
+      pages.push(ct.items.map(it=>({
+        x:it.transform[4],
+        y:Math.round(vp.height-it.transform[5]),
+        str:it.str.trim(),
+      })).filter(it=>it.str));
+    }
+    return pages; // pages[0] = 1페이지 아이템 목록, pages[1] = 2페이지 ...
+  }catch(e){
+    console.warn('PDF 좌표 추출 실패:', e);
+    return [];
+  }
 }
 
 // PDF 표의 칸(제품코드/제품명/브랜드/입고가/출고가/마진율) 헤더 위치를 그 문서에서 직접 찾아
 // 칸 경계를 정하고, 그 칸 안에 있는 글자만 모아 셀 값을 만든다.
 // 제품코드 칸에 값이 새로 나타나는 y좌표마다 새 제품 행으로 구분하므로,
 // 제품명이 여러 줄로 줄바꿈되거나 한 문서에 제품이 여러 건이어도 정확히 나뉜다.
-async function extractProductRowsByColumn(file){
-  if(!file) return [];
-  try{
-    const ab=await file.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
-    // 굵은 글씨(표 헤더 · "합계" 라벨)는 pdf.js가 글자를 한 글자씩 겹쳐 추출해
-    // "제제품품코코드드"처럼 나온다. 라벨을 알아볼 때만 연속 중복 글자를 하나로 접어 비교한다.
-    // (실제 데이터 셀 값에는 적용하지 않으므로 숫자·품명 값이 훼손될 위험은 없다)
-    const dedupe=s=>s.replace(/(.)\1/g,'$1');
-    const HEADERS={code:'제품코드',name:'제품명',brand:'브랜드',cost:'입고가',sale:'출고가',margin:'마진율'};
-    const ORDER=['code','name','brand','cost','sale','margin'];
+function extractProductRowsByColumn(pages){
+  // 굵은 글씨(표 헤더 · "합계" 라벨)는 같은 글자를 살짝 어긋난 위치에 겹쳐 두 번 그려서
+  // pdf.js가 거의 같은 문자열을 가진 아이템 두 개로 뽑아낸다. 값이 이미 "제품코드"처럼 정상 문자열이므로
+  // 별도 보정 없이 그대로 비교해도 되지만, 혹시 모를 연속 중복 글자(예: "제제품품코코드드")까지 대비해 접어둔다.
+  const dedupe=s=>s.replace(/(.)\1/g,'$1');
+  const HEADERS={code:'제품코드',name:'제품명',brand:'브랜드',cost:'입고가',sale:'출고가',margin:'마진율'};
+  const ORDER=['code','name','brand','cost','sale','margin'];
+  const products=[];
 
-    const products=[];
+  pages.forEach(items=>{
+    // 칸 경계는 페이지마다 새로 찾는다 — 표 헤더가 없는 다음 페이지(결재의견 표 등)를
+    // 이전 페이지 칸으로 이어서 읽으면 엉뚱한 표를 제품 행으로 오인하게 된다
+    let headerY=null;
+    const headerX={};
+    items.forEach(it=>{
+      const norm=dedupe(it.str);
+      ORDER.forEach(key=>{ if(norm===HEADERS[key]){ headerX[key]=it.x; headerY=it.y; } });
+    });
+    if(headerY==null || !ORDER.every(k=>headerX[k]!=null)) return; // 표 헤더 없는 페이지는 건너뜀
 
-    for(let pi=1; pi<=pdf.numPages; pi++){
-      let cols=null; // 칸 경계는 페이지마다 새로 찾는다 — 표 헤더가 없는 다음 페이지(결재의견 표 등)를
-                      // 이전 페이지 칸으로 이어서 읽으면 엉뚱한 표를 제품 행으로 오인하게 된다
-      const page=await pdf.getPage(pi);
-      const vp=page.getViewport({scale:1});
-      const ct=await page.getTextContent();
-      const items=ct.items.map(it=>({
-        x:it.transform[4],
-        y:Math.round(vp.height-it.transform[5]),
-        str:it.str.trim(),
-      })).filter(it=>it.str);
+    const xs=ORDER.map(k=>headerX[k]);
+    const cols={
+      code:  [xs[0]-10, xs[1]-2],
+      name:  [xs[1]-2,  xs[2]-2],
+      brand: [xs[2]-2,  xs[3]-2],
+      cost:  [xs[3]-2,  xs[4]-2],
+      sale:  [xs[4]-2,  xs[5]-2],
+      margin:[xs[5]-2,  xs[5]+120],
+    };
 
-      // 이 페이지에 표 헤더가 있으면 칸 경계를 다시 계산 (없으면 이전 페이지 경계를 그대로 사용)
-      let headerY=null;
-      const headerX={};
-      items.forEach(it=>{
-        const norm=dedupe(it.str);
-        ORDER.forEach(key=>{ if(norm===HEADERS[key]){ headerX[key]=it.x; headerY=it.y; } });
-      });
-      if(headerY!=null && ORDER.every(k=>headerX[k]!=null)){
-        const xs=ORDER.map(k=>headerX[k]);
-        cols={
-          headerY,
-          code:  [xs[0]-10, xs[1]-2],
-          name:  [xs[1]-2,  xs[2]-2],
-          brand: [xs[2]-2,  xs[3]-2],
-          cost:  [xs[3]-2,  xs[4]-2],
-          sale:  [xs[4]-2,  xs[5]-2],
-          margin:[xs[5]-2,  xs[5]+120],
-        };
+    // 표 끝("합계" 행) y좌표 — 못 찾으면 페이지 끝까지로 간주
+    let endY=Infinity;
+    items.forEach(it=>{
+      if(dedupe(it.str)==='합계' && it.x>=cols.code[0] && it.x<cols.code[1] && it.y>headerY){
+        endY=Math.min(endY, it.y);
       }
-      if(!cols) continue; // 아직 표를 못 찾은 페이지(표지 등)는 건너뜀
+    });
+    const bodyItems=items.filter(it=>it.y>headerY+3 && it.y<endY-1);
 
-      // 표 끝("합계" 행) y좌표 — 못 찾으면 페이지 끝까지로 간주
-      let endY=Infinity;
-      items.forEach(it=>{
-        if(dedupe(it.str)==='합계' && it.x>=cols.code[0] && it.x<cols.code[1] && it.y>cols.headerY){
-          endY=Math.min(endY, it.y);
-        }
+    // 제품코드 칸에 값이 나타나는 y좌표마다 새 행 시작점으로 인식 (품목이 여러 건이면 행도 여러 개)
+    const rowYs=[];
+    bodyItems
+      .filter(it=>it.x>=cols.code[0] && it.x<cols.code[1])
+      .sort((a,b)=>a.y-b.y||a.x-b.x)
+      .forEach(it=>{ if(!rowYs.some(y=>Math.abs(y-it.y)<=3)) rowYs.push(it.y); });
+    rowYs.sort((a,b)=>a-b);
+
+    rowYs.forEach((y0,idx)=>{
+      const yFrom=y0-3;
+      const yTo=idx<rowYs.length-1 ? rowYs[idx+1]-3 : endY-1;
+      const rowItems=bodyItems.filter(it=>it.y>=yFrom && it.y<yTo);
+      const cellText=range=>rowItems.filter(it=>it.x>=range[0]&&it.x<range[1])
+        .sort((a,b)=>a.y-b.y||a.x-b.x).map(it=>it.str).join(' ')
+        .replace(/\s+/g,' ').replace(/\s*([),.])/g,'$1').trim();
+
+      const code=cellText(cols.code);
+      if(!code) return; // 행 시작점인데 값이 없으면(잘못 감지) 건너뜀
+      const costRaw  =cellText(cols.cost).replace(/,/g,'');
+      const saleRaw  =cellText(cols.sale).replace(/,/g,'');
+      const marginRaw=cellText(cols.margin);
+      const marginM  =marginRaw.match(/-?[\d.]+/); // 부호(-) 포함해서 인식 (기존엔 마이너스가 날아갔음)
+
+      products.push({
+        카달로그번호:code,
+        item_name:cellText(cols.name),
+        브랜드:cellText(cols.brand),
+        입고가:costRaw?parseInt(costRaw,10):null,
+        출고가:saleRaw?parseInt(saleRaw,10):null,
+        마진율:marginM?parseFloat(marginM[0]):null,
       });
-      const bodyItems=items.filter(it=>it.y>cols.headerY+3 && it.y<endY-1);
+    });
+  });
+  return products;
+}
 
-      // 제품코드 칸에 값이 나타나는 y좌표마다 새 행 시작점으로 인식 (품목이 여러 건이면 행도 여러 개)
-      const rowYs=[];
-      bodyItems
-        .filter(it=>it.x>=cols.code[0] && it.x<cols.code[1])
-        .sort((a,b)=>a.y-b.y||a.x-b.x)
-        .forEach(it=>{ if(!rowYs.some(y=>Math.abs(y-it.y)<=3)) rowYs.push(it.y); });
-      rowYs.sort((a,b)=>a-b);
+// "사유" 문단은 제품 표 아래("합계" 행 다음)부터 "결재 의견" 표가 시작되기 전까지,
+// 값 칸(라벨 오른쪽, x:140~300) 안에만 있다. 이 방식은:
+//  - 사유가 다음 페이지로 넘어가도(예: 합계는 1페이지에, 사유 본문은 2페이지에 있는 경우) 그대로 이어붙여 읽고
+//  - "1." "2." 같은 번호가 사유에 없어도(= 다음 정지 지점을 못 찾아도) 결재의견 표를 사유로 잘못 끌어오지 않는다
+// (기존엔 "다음 줄이 Dreamcell 푸터로 시작한다" 같은 위치 가정을 썼는데, 실제로는 줄바꿈 위치가 살짝 달라
+//  그 가정이 어긋나면서 결재의견 표(승인자·날짜·의견)까지 통째로 사유에 딸려 들어갔었다)
+function extractReasonByColumn(pages){
+  // 페이지+y좌표를 하나의 숫자로 합쳐 "문서 전체에서 몇 번째 줄인지" 비교할 수 있게 한다
+  const pos=(pageIdx,y)=>pageIdx*100000+y;
 
-      rowYs.forEach((y0,idx)=>{
-        const yFrom=y0-3;
-        const yTo=idx<rowYs.length-1 ? rowYs[idx+1]-3 : endY-1;
-        const rowItems=bodyItems.filter(it=>it.y>=yFrom && it.y<yTo);
-        const cellText=range=>rowItems.filter(it=>it.x>=range[0]&&it.x<range[1])
-          .sort((a,b)=>a.y-b.y||a.x-b.x).map(it=>it.str).join(' ')
-          .replace(/\s+/g,' ').replace(/\s*([),.])/g,'$1').trim();
+  let startPos=null, endPos=null;
+  pages.forEach((items,pi)=>{
+    items.forEach(it=>{
+      if(startPos==null && it.str==='합계'    && it.x<150) startPos=pos(pi,it.y); // 제품 표 끝
+      if(endPos==null   && it.str==='결재 의견' && it.x<100) endPos  =pos(pi,it.y); // 결재의견 표 시작
+    });
+  });
+  if(startPos==null || endPos==null) return ''; // 못 찾으면 빈 값 — 사용자가 직접 입력하도록 둔다
 
-        const code=cellText(cols.code);
-        if(!code) return; // 행 시작점인데 값이 없으면(잘못 감지) 건너뜀
-        const costRaw  =cellText(cols.cost).replace(/,/g,'');
-        const saleRaw  =cellText(cols.sale).replace(/,/g,'');
-        const marginRaw=cellText(cols.margin);
-        const marginM  =marginRaw.match(/-?[\d.]+/); // 부호(-) 포함해서 인식 (기존엔 마이너스가 날아갔음)
-
-        products.push({
-          카달로그번호:code,
-          item_name:cellText(cols.name),
-          브랜드:cellText(cols.brand),
-          입고가:costRaw?parseInt(costRaw,10):null,
-          출고가:saleRaw?parseInt(saleRaw,10):null,
-          마진율:marginM?parseFloat(marginM[0]):null,
-        });
-      });
-    }
-    return products;
-  }catch(e){
-    console.warn('제품 표 추출 실패:', e);
-    return [];
-  }
+  const lines=[];
+  pages.forEach((items,pi)=>{
+    items.forEach(it=>{
+      const p=pos(pi,it.y);
+      if(p>startPos && p<endPos && it.x>=140 && it.x<300) lines.push({p,str:it.str});
+    });
+  });
+  lines.sort((a,b)=>a.p-b.p);
+  return lines.map(l=>l.str).join(' ').replace(/\s+/g,' ').trim();
 }
 
 // 드롭존
