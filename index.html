@@ -3102,10 +3102,13 @@ async function deleteHistoryRow(tab, id, btn) {
 
     // 3. 이슈모니터DB도 동일 건 삭제
     //    우선 source_id(업로더 원본 id)로 정확히 매칭 — 중복 건이 있어도 안전
-    //    source_id가 비어있는 과거 데이터는 날짜+코드+거래처로 폴백 매칭
+    //    source_id가 비어있는 과거 데이터는 날짜+코드+거래처로 폴백 매칭하되,
+    //    ★ 2026-09 안전장치: 폴백 매칭은 먼저 몇 건이 걸리는지 확인부터 하고,
+    //    "정확히 1건"일 때만 삭제한다 (2건 이상이면 엉뚱한 건까지 같이 지워질 수 있어
+    //    자동으로 지우지 않고 안내만 함).
     //    ⚠ 요청 자체가 실패(네트워크/서버 오류)했을 때와 "매칭되는 행이 0건"이었을 때를
     //    구분해서, 전자는 반드시 실패로 보고한다 (조용히 성공 처리하지 않음).
-    let imFailed = false, imErrMsg = '';
+    let imFailed = false, imErrMsg = '', imSkippedMsg = '';
     const delByQuery = async (q) => {
       const r = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/${tbl}?${q}`, 'DELETE', null, 'return=minimal,count=exact');
       if(!r.ok){ imFailed = true; imErrMsg = await r.text().catch(()=>''); return 0; }
@@ -3124,12 +3127,22 @@ async function deleteHistoryRow(tab, id, btn) {
       } else {
         fallbackQ = `source_id=is.null&return_date=eq.${r.return_date}&code=eq.${encodeURIComponent(r.code ?? '')}&customer_name=eq.${encodeURIComponent(r.customer_name ?? '')}`;
       }
-      deletedCount = await delByQuery(fallbackQ);
+      const checkRes = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/${tbl}?${fallbackQ}&select=id`);
+      const matches = await checkRes.json();
+      if(matches.length === 1){
+        deletedCount = await delByQuery(`id=eq.${matches[0].id}`);
+      } else if(matches.length === 0){
+        imSkippedMsg = ' (이슈모니터에서 같은 건을 못 찾았습니다)';
+      } else {
+        imSkippedMsg = ` (이슈모니터에 동일 조합 ${matches.length}건이 있어 자동 삭제를 건너뛰었어요 — 이슈모니터에서 직접 확인해주세요)`;
+      }
     }
 
     if(imFailed){
       console.error('[히스토리 삭제] 업로더DB는 삭제됐지만 이슈모니터DB 삭제 요청 실패:', imErrMsg);
       setStatus('⚠️ 업로더에서는 삭제됐지만 이슈모니터 반영에 실패했습니다 — 수동 확인 필요','','error');
+    } else if(imSkippedMsg){
+      setStatus('🗑️ 업로더에서 삭제됨'+imSkippedMsg,'','');
     } else if(!deletedCount){
       // 요청은 정상 처리됐지만 매칭되는 행이 없었던 경우 — 원래 이슈모니터에 없던 건일 수도 있으니
       // 실패로 단정하진 않되, "정말 반영됐는지"는 명확히 다르게 안내한다.
@@ -4180,7 +4193,11 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
   const ord = p.get('ord'), ym = p.get('ym');
   if(!ord) return;
   document.body.style.overflow='hidden';
-  let path=`/rest/v1/orders?orderer=eq.${encodeURIComponent(ord)}&select=*&order=order_date.asc&limit=200`;
+  // ★ 2026-09 안전장치: 업로더DB와 이슈모니터DB가 합쳐지면서, 이 테이블에 "업로더 원본"과
+  //   "업로드(→이슈모니터 반영) 시 생긴 사본"이 함께 섞이게 됨. 이 화면은 원래 이슈모니터가
+  //   보는 사본만 보여주던 화면이라, source_id가 있는(=업로드된 사본인) 건만 걸러서 보여줌.
+  //   그렇지 않으면 같은 주문이 원본+사본 두 줄로 중복 표시될 수 있음.
+  let path=`/rest/v1/orders?orderer=eq.${encodeURIComponent(ord)}&source_id=not.is.null&select=*&order=order_date.asc&limit=200`;
   if(ym){
     const [y,m]=ym.split('-');
     const nm=m==='12'?`${parseInt(y)+1}-01`:`${y}-${String(parseInt(m)+1).padStart(2,'0')}`;
