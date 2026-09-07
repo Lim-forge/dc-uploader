@@ -1408,7 +1408,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 // ── DB 설정 ───────────────────────────────────────────
 const UPLOADER_URL = 'https://uvplpljddxqojiekbxjg.supabase.co';
 const UPLOADER_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2cGxwbGpkZHhxb2ppZWtieGpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNDgxODMsImV4cCI6MjEwMTgyNDE4M30.rc_5JRDCrUDE8a1w3LYZbbyUYT1TAyFkQT_mxFKA8Zg';
-const ISSUE_URL    = 'https://fhlowhfqgmjnmzgvmjsi.supabase.co';
+const ISSUE_URL    = 'https://uvplpljddxqojiekbxjg.supabase.co'; // ★ 2026-09 Supabase 프로젝트 통합: dreamcell-report → dreamcell-uploader로 이전 (이제 UPLOADER_URL과 동일 프로젝트)
 
 /* ══════════════════════════════════════════
    로그인 게이트 (이름+비밀번호, 화면 접근만 막는 클라이언트 사이드 방식)
@@ -1417,7 +1417,7 @@ const LOGIN_GATE_ENABLED = true; // true로 바꾸면 로그인 화면 다시 �
 const AUTH_STORAGE_KEY = 'dc_up_auth_until';
 const AUTH_USER_KEY = 'dc_up_auth_user';
 const AUTH_SESSION_DAYS = 7;
-// 계정 목록은 Supabase app_config에 'staff_accounts' 키(JSON 배열)로 저장해서 화면에서 관리 가능.
+// 계정 목록은 Supabase uploader_app_config에 'staff_accounts' 키(JSON 배열)로 저장해서 화면에서 관리 가능.
 // menus: 이 계정이 들어갈 수 있는 메뉴 목록(중복 선택 가능) — 여기 없는 메뉴는 허브에서 안 보이고 직접 호출해도 막힘.
 //        나중에 법인이 늘어나도 "이 사람은 이 메뉴들만" 식으로 그대로 확장해서 쓰면 됨.
 const MENU_KEYS = ['return','low','order','cancel','unship'];
@@ -1439,10 +1439,10 @@ const AUTH_DEPT_KEY = 'dc_up_auth_dept';
 const AUTH_ROLE_KEY = 'dc_up_auth_role';
 const AUTH_MENUS_KEY = 'dc_up_auth_menus';
 
-// ── 계정 목록 로드/저장 (app_config: key='staff_accounts') ──
+// ── 계정 목록 로드/저장 (uploader_app_config: key='staff_accounts') ──
 async function loadStaffAccounts(){
   try{
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/app_config?key=eq.staff_accounts&select=value`);
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/uploader_app_config?key=eq.staff_accounts&select=value`);
     const data = await resp.json();
     if(data && data[0] && Array.isArray(data[0].value) && data[0].value.length){
       LOGIN_USERS = data[0].value.map(u=>({...u, menus: Array.isArray(u.menus) ? u.menus : ['*']})); // 옛 데이터(메뉴 필드 없음) 호환 — 없으면 전체허용(향후 메뉴 포함)으로 채움
@@ -1599,10 +1599,10 @@ async function sha256Hex(text){
   return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// 이름별 비밀번호 해시 조회 (app_config에 login_password_hash_<이름> 키로 저장, 없으면 공통 초기 비밀번호 사용)
+// 이름별 비밀번호 해시 조회 (uploader_app_config에 login_password_hash_<이름> 키로 저장, 없으면 공통 초기 비밀번호 사용)
 async function getStoredPasswordHash(name){
   try{
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/app_config?key=eq.login_password_hash_${encodeURIComponent(name)}&select=value`);
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/uploader_app_config?key=eq.login_password_hash_${encodeURIComponent(name)}&select=value`);
     const data = await resp.json();
     if(!data || !data[0] || !data[0].value) return AUTH_FALLBACK_HASH;
     return data[0].value;
@@ -1682,7 +1682,7 @@ function applyMenuGate(){
 
 // ── 비밀번호 관리 (마스터: 임영재는 전원 조회/변경 가능) ──
 async function upsertConfig(key, value){
-  const patchResp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,
+  const patchResp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/uploader_app_config?key=eq.${encodeURIComponent(key)}`,
     'PATCH', {value}, 'return=representation');
   if(!patchResp.ok){
     const errText = await patchResp.text().catch(()=>'');
@@ -1690,7 +1690,7 @@ async function upsertConfig(key, value){
   }
   const patched = await patchResp.json().catch(()=>[]);
   if(!patched || patched.length === 0){
-    const postResp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/app_config', 'POST', {key, value}, 'return=representation');
+    const postResp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/uploader_app_config', 'POST', {key, value}, 'return=representation');
     if(!postResp.ok){
       const errText = await postResp.text().catch(()=>'');
       throw new Error(`INSERT 실패 (${postResp.status}): ${errText}`);
@@ -1700,7 +1700,7 @@ async function upsertConfig(key, value){
 
 async function getStoredPasswordPlain(name){
   try{
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/app_config?key=eq.login_password_plain_${encodeURIComponent(name)}&select=value`);
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/uploader_app_config?key=eq.login_password_plain_${encodeURIComponent(name)}&select=value`);
     const data = await resp.json();
     if(!data || !data[0] || !data[0].value) return 'dr2068619187';
     return data[0].value;
@@ -1709,7 +1709,7 @@ async function getStoredPasswordPlain(name){
 
 async function getGateEnabled(){
   try{
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/app_config?key=eq.login_gate_enabled&select=value');
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/uploader_app_config?key=eq.login_gate_enabled&select=value');
     const data = await resp.json();
     if(!data || !data[0] || data[0].value === undefined || data[0].value === null) return LOGIN_GATE_ENABLED;
     return data[0].value === 'true';
@@ -1741,7 +1741,7 @@ async function onGateToggleChange(){
     if(confirmed !== checked){
       renderGateToggle(confirmed);
       msgEl.style.color = '#ff6b6b';
-      msgEl.textContent = '저장은 됐는데 DB 값이 다르게 읽혀요. app_config 테이블 권한(RLS)을 확인해주세요.';
+      msgEl.textContent = '저장은 됐는데 DB 값이 다르게 읽혀요. uploader_app_config 테이블 권한(RLS)을 확인해주세요.';
       return;
     }
     renderGateToggle(checked);
@@ -1899,7 +1899,7 @@ async function attemptLogin(){
   if(nameSel) nameSel.addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
   if(!isAuthValid() && nameSel) setTimeout(()=>nameSel.focus(), 100);
 })();
-const ISSUE_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobG93aGZxZ21qbm16Z3ZtanNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODU2NDgsImV4cCI6MjEwMTU2MTY0OH0.eW5_u_52wxD9UBPo_FzDgs6CqKqzTZPZO_j703gj1ps';
+const ISSUE_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2cGxwbGpkZHhxb2ppZWtieGpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNDgxODMsImV4cCI6MjEwMTgyNDE4M30.rc_5JRDCrUDE8a1w3LYZbbyUYT1TAyFkQT_mxFKA8Zg';
 
 // ── 상태 ─────────────────────────────────────────────
 let lowRows=[], retRows=[];
