@@ -2636,6 +2636,7 @@ function renderRetStats(data){
   const badStock=data.filter(r=>(r.process||'').split('\n')[0]==='악성재고');
   const fullySold=badStock.filter(r=>(r.sold_qty||0) >= (r.qty||0) && (r.qty||0)>0);
   const partialSold=badStock.filter(r=>(r.sold_qty||0) > 0 && (r.sold_qty||0) < (r.qty||0));
+  const badStockRemainAmt=badStock.reduce((s,r)=>s+((r.unit_price||0)*((r.qty||0)-(r.sold_qty||0))),0);
   let badStockSub = '';
   if(fullySold.length>0) badStockSub += ` <span style="color:#38b87e;font-weight:700;">판매완료: ${fullySold.length}건</span>`;
   if(partialSold.length>0) badStockSub += ` <span style="color:#c98a1a;font-weight:700;">부분판매: ${partialSold.length}건</span>`;
@@ -2644,11 +2645,13 @@ function renderRetStats(data){
     <div class="stat-card"><div class="sv green" id="rsv-qty">0</div><div class="sk">총 반품 수량</div></div>
     <div class="stat-card"><div class="sv gold" id="rsv-amt">0</div><div class="sk">총 반품 금액</div></div>
     <div class="stat-card" onclick="filterRetByBadStock()" style="cursor:pointer;" title="클릭하면 악성재고만 조회"><div class="sv red" id="rsv-bad">0</div><div class="sk">악성재고${badStockSub}</div></div>
+    <div class="stat-card"><div class="sv red" id="rsv-remain">0</div><div class="sk">악성재고 잔여금액</div></div>
     <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}" id="rsv-nu">0</div><div class="sk">미업로드</div></div>`;
   countUp(document.getElementById('rsv-cnt'), total);
   countUp(document.getElementById('rsv-qty'), totalQty);
   countUp(document.getElementById('rsv-amt'), totalAmt);
   countUp(document.getElementById('rsv-bad'), badStock.length);
+  countUp(document.getElementById('rsv-remain'), badStockRemainAmt);
   countUp(document.getElementById('rsv-nu'), notUploaded.length);
   const bar = document.getElementById('ret-bulk-bar');
   const info = document.getElementById('ret-bulk-info');
