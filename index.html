@@ -2637,8 +2637,8 @@ function renderRetStats(data){
   const fullySold=badStock.filter(r=>(r.sold_qty||0) >= (r.qty||0) && (r.qty||0)>0);
   const partialSold=badStock.filter(r=>(r.sold_qty||0) > 0 && (r.sold_qty||0) < (r.qty||0));
   let badStockSub = '';
-  if(fullySold.length>0) badStockSub += ` <span style="color:#38b87e;font-weight:700;">완료 ${fullySold.length}</span>`;
-  if(partialSold.length>0) badStockSub += ` <span style="color:#c98a1a;font-weight:700;">부분 ${partialSold.length}</span>`;
+  if(fullySold.length>0) badStockSub += ` <span style="color:#38b87e;font-weight:700;">판매완료: ${fullySold.length}건</span>`;
+  if(partialSold.length>0) badStockSub += ` <span style="color:#c98a1a;font-weight:700;">부분판매: ${partialSold.length}건</span>`;
   document.getElementById('ret-stats').innerHTML=`
     <div class="stat-card"><div class="sv blue" id="rsv-cnt">0</div><div class="sk">전체 건수</div></div>
     <div class="stat-card"><div class="sv green" id="rsv-qty">0</div><div class="sk">총 반품 수량</div></div>
