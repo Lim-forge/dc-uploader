@@ -2603,13 +2603,13 @@ async function loadRetHistory(){
           const totalQty = r.qty || 0;
           const soldQty = r.sold_qty || 0;
           if(soldQty <= 0){
-            extra = `<div style="margin-top:4px;"><button onclick="openSoldModal('${r.id}',${totalQty},0)" style="font-size:10.5px;padding:3px 10px;border-radius:4px;border:none;background:#38b87e;color:#fff;cursor:pointer;font-weight:700;">판매처리</button></div>`;
+            extra = `<div style="margin-top:4px;"><button onclick="openSoldModal('${r.id}',${totalQty})" style="font-size:10.5px;padding:3px 10px;border-radius:4px;border:none;background:#38b87e;color:#fff;cursor:pointer;font-weight:700;">판매처리</button></div>`;
           } else if(soldQty < totalQty){
-            extra = `<div style="margin-top:4px;font-size:10.5px;color:#c98a1a;font-weight:700;">🟡 ${soldQty}/${totalQty} 판매 (${fmtDate(r.sold_at)})</div>
-              <div style="margin-top:2px;"><button onclick="openSoldModal('${r.id}',${totalQty},${soldQty})" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid #c98a1a;background:none;color:#c98a1a;cursor:pointer;">수정</button></div>`;
+            extra = `<div style="margin-top:4px;font-size:10.5px;color:#c98a1a;font-weight:700;">🟡 ${soldQty}/${totalQty} 판매 (최근 ${fmtDate(r.sold_at)})</div>
+              <div style="margin-top:2px;"><button onclick="openSoldModal('${r.id}',${totalQty})" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid #c98a1a;background:none;color:#c98a1a;cursor:pointer;">이력 추가</button></div>`;
           } else {
             extra = `<div style="margin-top:4px;font-size:10.5px;color:#38b87e;font-weight:700;">✅ ${fmtDate(r.sold_at)} 판매완료 (${soldQty}/${totalQty})</div>
-              <div style="margin-top:2px;"><button onclick="openSoldModal('${r.id}',${totalQty},${soldQty})" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid #38b87e;background:none;color:#38b87e;cursor:pointer;">수정</button></div>`;
+              <div style="margin-top:2px;"><button onclick="openSoldModal('${r.id}',${totalQty})" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid #38b87e;background:none;color:#38b87e;cursor:pointer;">이력 보기</button></div>`;
           }
         }
         return `<span data-raw="${esc(raw)}" style="background:${c.bg};color:${c.fg};font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:pre-line;line-height:1.4;display:inline-block;">${esc(raw)}</span>${extra}`;})()}</td>
@@ -3127,49 +3127,71 @@ async function syncProcessToIssueMonitor(key, newProcess){
 // source_id로 정확히 1건만 골라서 반영하므로 필드매칭 방식보다 안전함
 // (사본이 아직 없는 미업로드 건이면 이슈모니터 쪽은 자동으로 건너뛰고 원본만 반영됨)
 let _soldModalId = null;
-let _soldModalMaxQty = 0;
-function openSoldModal(id, totalQty, currentSoldQty){
+let _soldModalTotalQty = 0;
+let _soldEvents = [];
+
+function openSoldModal(id, totalQty){
   _soldModalId = id;
-  _soldModalMaxQty = totalQty || 0;
-  document.getElementById('sold-total-qty-txt').textContent = `(전체 반품수량: ${totalQty}개 중)`;
-  const qtyInput = document.getElementById('sold-qty-input');
-  qtyInput.max = totalQty;
-  qtyInput.min = 1;
-  qtyInput.value = currentSoldQty > 0 ? currentSoldQty : totalQty;
+  _soldModalTotalQty = totalQty || 0;
+  document.getElementById('sold-qty-input').value = '';
   document.getElementById('sold-date-input').value = new Date().toISOString().slice(0,10);
   document.getElementById('sold-modal').style.display = 'flex';
+  loadSoldEvents();
 }
 function closeSoldModal(){
   document.getElementById('sold-modal').style.display = 'none';
-  _soldModalId = null;
+  _soldModalId = null; _soldEvents = [];
 }
-async function confirmMarkSold(){
-  const id = _soldModalId;
-  const dateVal = document.getElementById('sold-date-input').value;
-  const qtyVal = parseInt(document.getElementById('sold-qty-input').value, 10);
-  if(!id || !dateVal || !qtyVal || qtyVal < 1){ alert('판매 수량과 날짜를 확인해주세요.'); return; }
-  if(qtyVal > _soldModalMaxQty){ alert(`판매 수량은 전체 반품수량(${_soldModalMaxQty}개)을 넘을 수 없습니다.`); return; }
-  closeSoldModal();
-  try{
-    const payload = {sold_at: dateVal, sold_qty: qtyVal};
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?id=eq.${id}`, 'PATCH', payload);
-    if(!resp.ok) throw new Error('원본(업로더) 업데이트 실패');
-
-    let syncMsg = '';
-    const sres = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${id}`, 'PATCH', payload);
-    if(sres.ok){
-      // 실제로 반영된 사본이 있었는지 재확인 (조용한 무반영 방지)
-      const checkRes = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${id}&select=id`);
-      const rows = await checkRes.json().catch(()=>[]);
-      syncMsg = rows.length ? ' (이슈모니터도 반영됨)' : ' (아직 업로드 전 건이라 이슈모니터엔 반영할 사본이 없었어요)';
-    } else {
-      syncMsg = ' (이슈모니터 반영 실패 — 수동 확인 필요)';
-    }
-    setStatus('✅ 판매처리 완료'+syncMsg,'','success');
-    loadRetHistory();
-  }catch(e){
-    alert('❌ 오류: '+e.message);
+async function loadSoldEvents(){
+  const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_sale_events?return_id=eq.${_soldModalId}&order=sold_date.asc`);
+  _soldEvents = await resp.json().catch(()=>[]);
+  renderSoldEvents();
+}
+function renderSoldEvents(){
+  const listEl = document.getElementById('sold-events-list');
+  listEl.innerHTML = _soldEvents.length
+    ? _soldEvents.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0;">
+        <span>${fmt(e.qty)}개 · ${e.sold_date}</span>
+        <button onclick="deleteSoldEvent(${e.id})" style="border:none;background:none;color:#c0392b;cursor:pointer;font-size:11px;">삭제</button>
+      </div>`).join('')
+    : `<div style="color:#8a9ab0;text-align:center;">아직 판매 이력이 없습니다</div>`;
+  const sumQty = _soldEvents.reduce((s,e)=>s+Number(e.qty||0),0);
+  const remaining = _soldModalTotalQty - sumQty;
+  document.getElementById('sold-remaining-txt').textContent = `전체 ${_soldModalTotalQty}개 중 ${sumQty}개 판매 · 남은 수량 ${remaining}개`;
+  document.getElementById('sold-qty-input').max = remaining;
+}
+async function addSoldEvent(){
+  const qty = parseInt(document.getElementById('sold-qty-input').value, 10);
+  const date = document.getElementById('sold-date-input').value;
+  if(!qty || qty < 1 || !date){ alert('수량과 날짜를 입력해주세요.'); return; }
+  const sumQty = _soldEvents.reduce((s,e)=>s+Number(e.qty||0),0);
+  if(sumQty + qty > _soldModalTotalQty){
+    alert(`남은 수량(${_soldModalTotalQty - sumQty}개)을 초과할 수 없습니다.`);
+    return;
   }
+  const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, '/rest/v1/return_sale_events', 'POST', {return_id:_soldModalId, qty, sold_date:date});
+  if(!resp.ok){ alert('추가 실패'); return; }
+  document.getElementById('sold-qty-input').value = '';
+  await loadSoldEvents();
+  await syncSoldSummary();
+  loadRetHistory();
+}
+async function deleteSoldEvent(eventId){
+  if(!confirm('이 판매 이력을 삭제할까요?')) return;
+  await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_sale_events?id=eq.${eventId}`, 'DELETE');
+  await loadSoldEvents();
+  await syncSoldSummary();
+  loadRetHistory();
+}
+// 이력 합계를 원본·사본 양쪽의 sold_qty/sold_at 캐시값에 반영 (목록·KPI는 이 캐시값을 읽음)
+async function syncSoldSummary(){
+  const sumQty = _soldEvents.reduce((s,e)=>s+Number(e.qty||0),0);
+  const maxDate = _soldEvents.length
+    ? _soldEvents.reduce((m,e)=>e.sold_date>m?e.sold_date:m, _soldEvents[0].sold_date)
+    : null;
+  const payload = { sold_qty: sumQty, sold_at: maxDate };
+  await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?id=eq.${_soldModalId}`, 'PATCH', payload);
+  await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${_soldModalId}`, 'PATCH', payload);
 }
 
 // 히스토리 행 삭제
@@ -4235,18 +4257,17 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
 
 <!-- ══ 악성재고 판매처리 모달 ══ -->
 <div id="sold-modal" style="display:none;position:fixed;inset:0;background:rgba(30,50,80,.55);z-index:9998;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
-    <div style="font-size:17px;font-weight:800;color:#1a2a3a;margin-bottom:6px;">✅ 악성재고 판매처리</div>
-    <div style="font-size:12.5px;color:#4a6a8a;margin-bottom:20px;">판매(처리)된 날짜를 선택하세요</div>
-    <input type="date" id="sold-date-input" style="width:100%;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 14px;font-size:15px;outline:none;text-align:center;">
-    <div style="text-align:left;font-size:12px;color:#4a6a8a;margin-top:14px;margin-bottom:6px;">판매 수량 <span id="sold-total-qty-txt" style="color:#8a9ab0;"></span></div>
-    <input type="number" id="sold-qty-input" min="1" style="width:100%;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 14px;font-size:15px;outline:none;text-align:center;">
-    <div style="display:flex;gap:10px;margin-top:20px;">
-      <button onclick="closeSoldModal()"
-        style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
-      <button onclick="confirmMarkSold()"
-        style="flex:1;padding:11px;border-radius:10px;border:none;background:#38b87e;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="font-size:17px;font-weight:800;color:#1a2a3a;margin-bottom:4px;text-align:center;">✅ 악성재고 판매처리</div>
+    <div id="sold-remaining-txt" style="font-size:12.5px;color:#4a6a8a;text-align:center;margin-bottom:14px;"></div>
+    <div id="sold-events-list" style="font-size:12.5px;color:#333;margin-bottom:12px;max-height:160px;overflow-y:auto;border:1px solid #e8edf3;border-radius:10px;padding:8px 12px;"></div>
+    <div style="display:flex;gap:8px;">
+      <input type="number" id="sold-qty-input" min="1" placeholder="수량" style="width:90px;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;text-align:center;">
+      <input type="date" id="sold-date-input" style="flex:1;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;">
     </div>
+    <button onclick="addSoldEvent()" style="width:100%;margin-top:10px;padding:11px;border-radius:10px;border:none;background:#38b87e;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">+ 판매 이력 추가</button>
+    <button onclick="closeSoldModal()"
+      style="width:100%;margin-top:10px;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">닫기</button>
   </div>
 </div>
 
