@@ -1334,6 +1334,16 @@ tbody tr:hover td{background:#f4f7fb;}
           <span class="filter-label">품명</span>
           <input type="text" class="filter-input" id="ret-h-name" placeholder="Glove">
         </div>
+        <div class="filter-group">
+          <span class="filter-label">처리내용</span>
+          <select class="filter-input" id="ret-h-process">
+            <option value="">전체</option>
+            <option value="반품완료">반품완료</option>
+            <option value="악성재고">악성재고</option>
+            <option value="재고사용">재고사용</option>
+            <option value="반품처리중">반품처리중</option>
+          </select>
+        </div>
         <button class="filter-btn" onclick="loadRetHistory()">조회</button>
         <button class="filter-reset" onclick="resetRetFilter()">초기화</button>
         <div style="flex:1"></div>
@@ -2592,7 +2602,7 @@ async function loadRetHistory(){
         if(first==='악성재고'){
           extra = r.sold_at
             ? `<div style="margin-top:4px;font-size:10.5px;color:#38b87e;font-weight:700;">✅ ${fmtDate(r.sold_at)} 판매완료</div>`
-            : `<div style="margin-top:4px;"><button onclick="markReturnSold('${r.id}')" style="font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid rgba(56,184,126,0.4);background:none;color:#38b87e;cursor:pointer;">✅ 판매처리</button></div>`;
+            : `<div style="margin-top:4px;"><button onclick="openSoldModal('${r.id}')" style="font-size:10.5px;padding:3px 10px;border-radius:4px;border:none;background:#38b87e;color:#fff;cursor:pointer;font-weight:700;">판매처리</button></div>`;
         }
         return `<span data-raw="${esc(raw)}" style="background:${c.bg};color:${c.fg};font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:pre-line;line-height:1.4;display:inline-block;">${esc(raw)}</span>${extra}`;})()}</td>
       <td class="td-num">${fmt(r.unit_price)}</td>
@@ -2621,7 +2631,7 @@ function renderRetStats(data){
     <div class="stat-card"><div class="sv blue" id="rsv-cnt">0</div><div class="sk">전체 건수</div></div>
     <div class="stat-card"><div class="sv green" id="rsv-qty">0</div><div class="sk">총 반품 수량</div></div>
     <div class="stat-card"><div class="sv gold" id="rsv-amt">0</div><div class="sk">총 반품 금액</div></div>
-    <div class="stat-card"><div class="sv red" id="rsv-bad">0</div><div class="sk">악성재고${badStockSold.length>0?` <span style="color:#38b87e;font-weight:700;">(판매 ${badStockSold.length})</span>`:''}</div></div>
+    <div class="stat-card" onclick="filterRetByBadStock()" style="cursor:pointer;" title="클릭하면 악성재고만 조회"><div class="sv red" id="rsv-bad">0</div><div class="sk">악성재고${badStockSold.length>0?` <span style="color:#38b87e;font-weight:700;">(판매 ${badStockSold.length})</span>`:''}</div></div>
     <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}" id="rsv-nu">0</div><div class="sk">미업로드</div></div>`;
   countUp(document.getElementById('rsv-cnt'), total);
   countUp(document.getElementById('rsv-qty'), totalQty);
@@ -2645,8 +2655,12 @@ function renderRetStats(data){
 }
 
 function resetRetFilter(){
-  ['ret-h-year','ret-h-month','ret-h-from','ret-h-to','ret-h-code','ret-h-name']
+  ['ret-h-year','ret-h-month','ret-h-from','ret-h-to','ret-h-code','ret-h-name','ret-h-process']
     .forEach(id=>{document.getElementById(id).value='';});
+  loadRetHistory();
+}
+function filterRetByBadStock(){
+  document.getElementById('ret-h-process').value='악성재고';
   loadRetHistory();
 }
 
@@ -2688,6 +2702,10 @@ function buildQueryString(prefix){
   if(to)   params.push(`${dateCol}=lte.${to}`);
   if(code) params.push(`${codeCol}=ilike.*${encodeURIComponent(code)}*`);
   if(name) params.push(`품명=ilike.*${encodeURIComponent(name)}*`);
+  if(!isLow){
+    const process=document.getElementById('ret-h-process')?.value;
+    if(process) params.push(`process=ilike.${encodeURIComponent(process)}*`);
+  }
   return params.join('&');
 }
 
@@ -3096,15 +3114,27 @@ async function syncProcessToIssueMonitor(key, newProcess){
 // 악성재고 → 판매처리: 원본(업로더)과 사본(이슈모니터) 양쪽에 sold_at 반영
 // source_id로 정확히 1건만 골라서 반영하므로 필드매칭 방식보다 안전함
 // (사본이 아직 없는 미업로드 건이면 이슈모니터 쪽은 자동으로 건너뛰고 원본만 반영됨)
-async function markReturnSold(id){
-  if(!confirm('오늘 날짜로 판매처리할까요?\n\n(반품/이슈모니터 양쪽에 반영됩니다)')) return;
-  const today = new Date().toISOString().slice(0,10);
+let _soldModalId = null;
+function openSoldModal(id){
+  _soldModalId = id;
+  document.getElementById('sold-date-input').value = new Date().toISOString().slice(0,10);
+  document.getElementById('sold-modal').style.display = 'flex';
+}
+function closeSoldModal(){
+  document.getElementById('sold-modal').style.display = 'none';
+  _soldModalId = null;
+}
+async function confirmMarkSold(){
+  const id = _soldModalId;
+  const dateVal = document.getElementById('sold-date-input').value;
+  if(!id || !dateVal){ alert('날짜를 선택해주세요.'); return; }
+  closeSoldModal();
   try{
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?id=eq.${id}`, 'PATCH', {sold_at: today});
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?id=eq.${id}`, 'PATCH', {sold_at: dateVal});
     if(!resp.ok) throw new Error('원본(업로더) 업데이트 실패');
 
     let syncMsg = '';
-    const sres = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${id}`, 'PATCH', {sold_at: today});
+    const sres = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${id}`, 'PATCH', {sold_at: dateVal});
     if(sres.ok){
       // 실제로 반영된 사본이 있었는지 재확인 (조용한 무반영 방지)
       const checkRes = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${id}&select=id`);
@@ -4177,6 +4207,21 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
         style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
       <button onclick="bulkUploadOrd()"
         style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#9356db,#6d3ab8);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">📤 업로드</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 악성재고 판매처리 모달 ══ -->
+<div id="sold-modal" style="display:none;position:fixed;inset:0;background:rgba(30,50,80,.55);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+    <div style="font-size:17px;font-weight:800;color:#1a2a3a;margin-bottom:6px;">✅ 악성재고 판매처리</div>
+    <div style="font-size:12.5px;color:#4a6a8a;margin-bottom:20px;">판매(처리)된 날짜를 선택하세요</div>
+    <input type="date" id="sold-date-input" style="width:100%;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 14px;font-size:15px;outline:none;text-align:center;">
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="closeSoldModal()"
+        style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
+      <button onclick="confirmMarkSold()"
+        style="flex:1;padding:11px;border-radius:10px;border:none;background:#38b87e;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
     </div>
   </div>
 </div>
