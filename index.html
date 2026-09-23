@@ -2315,7 +2315,7 @@ async function loadLowHistory(){
   document.getElementById('low-stats').innerHTML='';
   let qs=buildQueryString('low');
   try{
-    const resp=await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/low_margin_shipments?${qs}&order=ship_date.asc,id.asc&limit=500`);
+    const resp=await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/low_margin_shipments?${qs}&source_id=is.null&order=ship_date.asc,id.asc&limit=500`);
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
     renderLowStats(data);
@@ -2583,7 +2583,7 @@ async function loadRetHistory(){
   document.getElementById('ret-stats').innerHTML='';
   let qs=buildQueryString('ret');
   try{
-    const resp=await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?${qs}&order=return_date.asc,id.asc&limit=500`);
+    const resp=await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?${qs}&source_id=is.null&order=return_date.asc,id.asc&limit=500`);
     const data=await resp.json();
     if(!Array.isArray(data)) throw new Error(data.message||'오류');
     renderRetStats(data);
@@ -2600,9 +2600,17 @@ async function loadRetHistory(){
       <td>${(()=>{const raw=r.process||'-';const first=raw.split('\n')[0];const c={반품완료:{bg:'rgba(56,184,126,0.12)',fg:'#38b87e'},재고사용:{bg:'rgba(74,127,193,0.12)',fg:'#4a7fc1'},악성재고:{bg:'rgba(220,80,80,0.12)',fg:'#d95f5f'},반품처리중:{bg:'var(--warn-dim)',fg:'var(--warn)'}}[first]||{bg:'var(--surface2)',fg:'var(--text-muted)'};
         let extra='';
         if(first==='악성재고'){
-          extra = r.sold_at
-            ? `<div style="margin-top:4px;font-size:10.5px;color:#38b87e;font-weight:700;">✅ ${fmtDate(r.sold_at)} 판매완료</div>`
-            : `<div style="margin-top:4px;"><button onclick="openSoldModal('${r.id}')" style="font-size:10.5px;padding:3px 10px;border-radius:4px;border:none;background:#38b87e;color:#fff;cursor:pointer;font-weight:700;">판매처리</button></div>`;
+          const totalQty = r.qty || 0;
+          const soldQty = r.sold_qty || 0;
+          if(soldQty <= 0){
+            extra = `<div style="margin-top:4px;"><button onclick="openSoldModal('${r.id}',${totalQty},0)" style="font-size:10.5px;padding:3px 10px;border-radius:4px;border:none;background:#38b87e;color:#fff;cursor:pointer;font-weight:700;">판매처리</button></div>`;
+          } else if(soldQty < totalQty){
+            extra = `<div style="margin-top:4px;font-size:10.5px;color:#c98a1a;font-weight:700;">🟡 ${soldQty}/${totalQty} 판매 (${fmtDate(r.sold_at)})</div>
+              <div style="margin-top:2px;"><button onclick="openSoldModal('${r.id}',${totalQty},${soldQty})" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid #c98a1a;background:none;color:#c98a1a;cursor:pointer;">수정</button></div>`;
+          } else {
+            extra = `<div style="margin-top:4px;font-size:10.5px;color:#38b87e;font-weight:700;">✅ ${fmtDate(r.sold_at)} 판매완료 (${soldQty}/${totalQty})</div>
+              <div style="margin-top:2px;"><button onclick="openSoldModal('${r.id}',${totalQty},${soldQty})" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid #38b87e;background:none;color:#38b87e;cursor:pointer;">수정</button></div>`;
+          }
         }
         return `<span data-raw="${esc(raw)}" style="background:${c.bg};color:${c.fg};font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:pre-line;line-height:1.4;display:inline-block;">${esc(raw)}</span>${extra}`;})()}</td>
       <td class="td-num">${fmt(r.unit_price)}</td>
@@ -2626,12 +2634,16 @@ function renderRetStats(data){
   const totalAmt=data.reduce((s,r)=>s+(r.total||0),0);
   const notUploaded=data.filter(r=>!r.is_uploaded);
   const badStock=data.filter(r=>(r.process||'').split('\n')[0]==='악성재고');
-  const badStockSold=badStock.filter(r=>r.sold_at);
+  const fullySold=badStock.filter(r=>(r.sold_qty||0) >= (r.qty||0) && (r.qty||0)>0);
+  const partialSold=badStock.filter(r=>(r.sold_qty||0) > 0 && (r.sold_qty||0) < (r.qty||0));
+  let badStockSub = '';
+  if(fullySold.length>0) badStockSub += ` <span style="color:#38b87e;font-weight:700;">완료 ${fullySold.length}</span>`;
+  if(partialSold.length>0) badStockSub += ` <span style="color:#c98a1a;font-weight:700;">부분 ${partialSold.length}</span>`;
   document.getElementById('ret-stats').innerHTML=`
     <div class="stat-card"><div class="sv blue" id="rsv-cnt">0</div><div class="sk">전체 건수</div></div>
     <div class="stat-card"><div class="sv green" id="rsv-qty">0</div><div class="sk">총 반품 수량</div></div>
     <div class="stat-card"><div class="sv gold" id="rsv-amt">0</div><div class="sk">총 반품 금액</div></div>
-    <div class="stat-card" onclick="filterRetByBadStock()" style="cursor:pointer;" title="클릭하면 악성재고만 조회"><div class="sv red" id="rsv-bad">0</div><div class="sk">악성재고${badStockSold.length>0?` <span style="color:#38b87e;font-weight:700;">(판매 ${badStockSold.length})</span>`:''}</div></div>
+    <div class="stat-card" onclick="filterRetByBadStock()" style="cursor:pointer;" title="클릭하면 악성재고만 조회"><div class="sv red" id="rsv-bad">0</div><div class="sk">악성재고${badStockSub}</div></div>
     <div class="stat-card"><div class="sv ${notUploaded.length>0?'red':'green'}" id="rsv-nu">0</div><div class="sk">미업로드</div></div>`;
   countUp(document.getElementById('rsv-cnt'), total);
   countUp(document.getElementById('rsv-qty'), totalQty);
@@ -3115,8 +3127,15 @@ async function syncProcessToIssueMonitor(key, newProcess){
 // source_id로 정확히 1건만 골라서 반영하므로 필드매칭 방식보다 안전함
 // (사본이 아직 없는 미업로드 건이면 이슈모니터 쪽은 자동으로 건너뛰고 원본만 반영됨)
 let _soldModalId = null;
-function openSoldModal(id){
+let _soldModalMaxQty = 0;
+function openSoldModal(id, totalQty, currentSoldQty){
   _soldModalId = id;
+  _soldModalMaxQty = totalQty || 0;
+  document.getElementById('sold-total-qty-txt').textContent = `(전체 반품수량: ${totalQty}개 중)`;
+  const qtyInput = document.getElementById('sold-qty-input');
+  qtyInput.max = totalQty;
+  qtyInput.min = 1;
+  qtyInput.value = currentSoldQty > 0 ? currentSoldQty : totalQty;
   document.getElementById('sold-date-input').value = new Date().toISOString().slice(0,10);
   document.getElementById('sold-modal').style.display = 'flex';
 }
@@ -3127,14 +3146,17 @@ function closeSoldModal(){
 async function confirmMarkSold(){
   const id = _soldModalId;
   const dateVal = document.getElementById('sold-date-input').value;
-  if(!id || !dateVal){ alert('날짜를 선택해주세요.'); return; }
+  const qtyVal = parseInt(document.getElementById('sold-qty-input').value, 10);
+  if(!id || !dateVal || !qtyVal || qtyVal < 1){ alert('판매 수량과 날짜를 확인해주세요.'); return; }
+  if(qtyVal > _soldModalMaxQty){ alert(`판매 수량은 전체 반품수량(${_soldModalMaxQty}개)을 넘을 수 없습니다.`); return; }
   closeSoldModal();
   try{
-    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?id=eq.${id}`, 'PATCH', {sold_at: dateVal});
+    const payload = {sold_at: dateVal, sold_qty: qtyVal};
+    const resp = await sbFetch(UPLOADER_URL, UPLOADER_KEY, `/rest/v1/return_shipments?id=eq.${id}`, 'PATCH', payload);
     if(!resp.ok) throw new Error('원본(업로더) 업데이트 실패');
 
     let syncMsg = '';
-    const sres = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${id}`, 'PATCH', {sold_at: dateVal});
+    const sres = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${id}`, 'PATCH', payload);
     if(sres.ok){
       // 실제로 반영된 사본이 있었는지 재확인 (조용한 무반영 방지)
       const checkRes = await sbFetch(ISSUE_URL, ISSUE_KEY, `/rest/v1/return_shipments?source_id=eq.${id}&select=id`);
@@ -4217,6 +4239,8 @@ function uploadOrdManual() { showToast('수기입력 업로드는 추후 구현 
     <div style="font-size:17px;font-weight:800;color:#1a2a3a;margin-bottom:6px;">✅ 악성재고 판매처리</div>
     <div style="font-size:12.5px;color:#4a6a8a;margin-bottom:20px;">판매(처리)된 날짜를 선택하세요</div>
     <input type="date" id="sold-date-input" style="width:100%;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 14px;font-size:15px;outline:none;text-align:center;">
+    <div style="text-align:left;font-size:12px;color:#4a6a8a;margin-top:14px;margin-bottom:6px;">판매 수량 <span id="sold-total-qty-txt" style="color:#8a9ab0;"></span></div>
+    <input type="number" id="sold-qty-input" min="1" style="width:100%;border:1.5px solid #d0dcea;border-radius:10px;padding:10px 14px;font-size:15px;outline:none;text-align:center;">
     <div style="display:flex;gap:10px;margin-top:20px;">
       <button onclick="closeSoldModal()"
         style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #d0dcea;background:#fff;font-size:14px;cursor:pointer;">취소</button>
